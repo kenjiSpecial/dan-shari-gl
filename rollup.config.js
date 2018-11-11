@@ -38,7 +38,7 @@ function glsl() {
 
 const outputConfig = {
 	name: pkg.libName,
-	file: pkg.main,
+	file: 'examples/vendors/' + pkg.main,
 	format: 'umd',
 	sourcemap: 'inline'
 };
@@ -80,7 +80,24 @@ const defaultConfig = [
 		input: './src/index.js',
 		output: {
 			name: pkg.libName,
-			file: pkg.min,
+			file: pkg.main,
+			format: 'umd'
+		},
+		plugins: [
+			glsl(),
+			replace({
+				DANSHARI_VERSOIN: pkg.version
+			}),
+			babel(babelrc()),
+			resolve(), // so Rollup can find `ms`
+			commonjs() // so Rollup can convert `ms` to an ES module
+		]
+	},
+	{
+		input: './src/index.js',
+		output: {
+			name: pkg.libName,
+			file: 'examples/vendors/' + pkg.main,
 			format: 'umd'
 		},
 		plugins: [

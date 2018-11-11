@@ -34,8 +34,6 @@ export class Camera {
 			[this.lookAtPosition.x, this.lookAtPosition.y, this.lookAtPosition.z],
 			[0, 1, 0]
 		);
-		// console.log(this.position);
-		// console.log(this._viewMatrix);
 	}
 
 	get viewMatrix() {

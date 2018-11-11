@@ -116,7 +116,7 @@ export function creteBuffer(gl, program, data, str) {
 }
 
 /**
- * get uniform locations
+ * create indexbuffer
  *
  * @param {WebGLRenderingContext} gl
  * @param {WebGLProgram} program
