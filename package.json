@@ -1,0 +1,34 @@
+{
+  "name": "freelance-start-kit",
+  "version": "1.0.0",
+  "description": "prototype tool with parcel",
+  "main": "build/dsrgl.js",
+  "min": "build/dsrgl.min.js",
+  "libName": "dsr",
+  "license": "MIT",
+  "scripts": {
+    "build": "rollup -c",
+    "start": "rollup --watch -c --configDebug",
+    "serve": "concurrently \"http-server\" \"opn http://localhost:8080/examples\""
+  },
+  "dependencies": {
+    "gl-matrix": "^2.8.1",
+    "gsap": "^1.20.4",
+    "wolfy87-eventemitter": "^5.2.5"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-plugin-external-helpers": "^6.22.0",
+    "babel-preset-env": "^1.7.0",
+    "babelrc-rollup": "^3.0.0",
+    "concurrently": "^4.0.1",
+    "http-server": "^0.11.1",
+    "minimist": "^1.2.0",
+    "opn-cli": "^3.1.0",
+    "rollup": "^0.59.4",
+    "rollup-plugin-babel": "^3.0.3",
+    "rollup-plugin-commonjs": "^9.1.0",
+    "rollup-plugin-node-resolve": "^3.3.0",
+    "rollup-plugin-uglify": "3.0.0"
+  }
+}
