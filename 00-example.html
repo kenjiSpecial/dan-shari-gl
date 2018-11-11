@@ -1,0 +1,45 @@
+<html>
+<title>DEV</title>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<style>
+    * {
+        margin: 0;
+    }
+
+    html,
+    body {
+        font-family: 'Roboto', sans-serif;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    canvas {
+        display: block;
+    }
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+
+<body>
+    <script src="../build/dsrgl.min.js"></script>
+    <script src="./vendors/dat.gui.min.js"></script>
+    <script src="./vendors/stats.min.js"></script>
+
+    <script>
+        var canvas = document.createElement('canvas');
+        var gl = canvas.getContext('webgl');
+
+        resize();
+
+        function resize(){
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerWidth;
+
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+
+    </script>
+</body>
+
+</html>
