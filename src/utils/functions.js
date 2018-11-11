@@ -1,3 +1,5 @@
+import { FLOAT } from './consts';
+
 /**
  * get uniform locations
  *
@@ -7,7 +9,7 @@
  *
  * @returns {object} uniformLocation
  */
-function getUniformLocations(gl, program, arr) {
+export function getUniformLocations(gl, program, arr) {
 	let locations = {};
 
 	for (let ii = 0; ii < arr.length; ii++) {
@@ -16,14 +18,14 @@ function getUniformLocations(gl, program, arr) {
 		locations[name] = uniformLocation;
 	}
 
-	return uniformLocation;
+	return locations;
 }
 
 /**
  * compile shader based on three.js
  */
 
-function addLineNumbers(string) {
+export function addLineNumbers(string) {
 	let lines = string.split('\n');
 
 	for (let i = 0; i < lines.length; i++) {
@@ -77,7 +79,7 @@ export function createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc) {
 	const program = gl.createProgram();
 
 	const vertexShader = compileGLShader(gl, gl.VERTEX_SHADER, vertexShaderSrc);
-	const fragmentShader = compileGLShader(gl, gl.VERTEX_SHADER, fragmentShaderSrc);
+	const fragmentShader = compileGLShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSrc);
 
 	gl.attachShader(program, vertexShader);
 	gl.attachShader(program, fragmentShader);
@@ -91,4 +93,68 @@ export function createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc) {
 	}
 
 	return program;
+}
+
+/**
+ * get uniform locations
+ *
+ * @param {WebGLRenderingContext} gl
+ * @param {WebGLProgram} program
+ * @param {Float32Array} data
+ * @param {String} str
+ *
+ * @returns {object} uniformLocation
+ */
+export function creteBuffer(gl, program, data, str) {
+	const buffer = gl.createBuffer();
+	const location = gl.getAttribLocation(program, str);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+	gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
+	return { buffer, location };
+}
+
+/**
+ * get uniform locations
+ *
+ * @param {WebGLRenderingContext} gl
+ * @param {WebGLProgram} program
+ * @param {Uint16Array | Uint32Array} data
+ * @param {String} str
+ *
+ * @returns {object} uniformLocation
+ */
+export function createIndex(gl, indices) {
+	const buffer = gl.createBuffer();
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+
+	const cnt = indices.length;
+	return { cnt, buffer };
+}
+
+/**
+ *
+ * @param {WebGLRenderingContext} gl
+ * @param {WebGLBuffer} buffer
+ * @param {Number} location
+ * @param {Number} size
+ * @param {Boolean} normalized
+ * @param {Number} stride
+ * @param {Number} offset
+ */
+export function bindBuffer(
+	gl,
+	buffer,
+	location = 0,
+	size = 1,
+	type = FLOAT,
+	normalized = false,
+	stride = 0,
+	offset = 0
+) {
+	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+	gl.vertexAttribPointer(location, size, type, normalized, stride, offset);
+	gl.enableVertexAttribArray(location);
 }

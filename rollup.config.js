@@ -6,8 +6,11 @@ import commonjs from 'rollup-plugin-commonjs';
 import pkg from './package.json';
 import babel from 'rollup-plugin-babel';
 import babelrc from 'babelrc-rollup';
+import replace from 'rollup-plugin-replace';
 import resolve from 'rollup-plugin-node-resolve';
 import uglify from 'rollup-plugin-uglify';
+
+console.log('library name' + pkg.libName + ', version: ' + pkg.version);
 
 function glsl() {
 	return {
@@ -64,6 +67,9 @@ const defaultConfig = [
 		},
 		plugins: [
 			glsl(),
+			replace({
+				DANSHARI_VERSOIN: pkg.version
+			}),
 			babel(babelrc()),
 			resolve(), // so Rollup can find `ms`
 			commonjs(), // so Rollup can convert `ms` to an ES module
@@ -79,6 +85,9 @@ const defaultConfig = [
 		},
 		plugins: [
 			glsl(),
+			replace({
+				DANSHARI_VERSOIN: pkg.version
+			}),
 			babel(babelrc()),
 			resolve(), // so Rollup can find `ms`
 			commonjs() // so Rollup can convert `ms` to an ES module

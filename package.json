@@ -1,6 +1,6 @@
 {
   "name": "freelance-start-kit",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "prototype tool with parcel",
   "main": "build/dsrgl.js",
   "min": "build/dsrgl.min.js",
@@ -29,6 +29,7 @@
     "rollup-plugin-babel": "^3.0.3",
     "rollup-plugin-commonjs": "^9.1.0",
     "rollup-plugin-node-resolve": "^3.3.0",
+    "rollup-plugin-replace": "^2.1.0",
     "rollup-plugin-uglify": "3.0.0"
   }
 }

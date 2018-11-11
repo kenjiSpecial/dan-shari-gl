@@ -12,7 +12,6 @@ export class Camera {
 	}
 
 	updatePerspective(width, height, fov, near, far) {
-		// console.log(fov);
 		mat4.perspective(this._projectionMatrix, (fov / 180) * Math.PI, width / height, near, far);
 	}
 
