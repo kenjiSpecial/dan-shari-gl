@@ -1,20 +1,19 @@
 {
-  "name": "freelance-start-kit",
+  "name": "dan-shari-gl",
   "version": "0.1.0",
-  "description": "prototype tool with parcel",
+  "description": "minimum webgl framework",
   "main": "build/dsrgl.js",
   "min": "build/dsrgl.min.js",
   "libName": "dsr",
   "license": "MIT",
+  "repository": "kenjiSpecial/dan-sha-ri-gl",
   "scripts": {
     "build": "rollup -c",
     "start": "rollup --watch -c --configDebug",
+    "plugin": "rollup -c ./plugin/rollup.config.js",
     "serve": "concurrently \"http-server\" \"opn http://localhost:8080/examples\""
   },
   "dependencies": {
-    "gl-matrix": "^2.8.1",
-    "gsap": "^1.20.4",
-    "wolfy87-eventemitter": "^5.2.5"
   },
   "devDependencies": {
     "babel-core": "^6.26.3",

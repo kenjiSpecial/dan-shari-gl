@@ -64,3 +64,48 @@ export function transformMat4(out, a, m) {
 	out[2] = (m[2] * x + m[6] * y + m[10] * z + m[14]) / w;
 	return out;
 }
+
+/**
+ * Normalize a vec3
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a vector to normalize
+ * @returns {vec3} out
+ */
+
+export function normalize(out, a) {
+	let x = a[0];
+	let y = a[1];
+	let z = a[2];
+	let len = x * x + y * y + z * z;
+	if (len > 0) {
+		//TODO: evaluate use of glm_invsqrt here?
+		len = 1 / Math.sqrt(len);
+		out[0] = a[0] * len;
+		out[1] = a[1] * len;
+		out[2] = a[2] * len;
+	}
+	return out;
+}
+
+/**
+ * Computes the cross product of two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+
+export function cross(out, a, b) {
+	let ax = a[0],
+		ay = a[1],
+		az = a[2];
+	let bx = b[0],
+		by = b[1],
+		bz = b[2];
+	out[0] = ay * bz - az * by;
+	out[1] = az * bx - ax * bz;
+	out[2] = ax * by - ay * bx;
+	return out;
+}
