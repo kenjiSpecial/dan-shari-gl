@@ -158,6 +158,62 @@
 		gl.enableVertexAttribArray(location);
 	}
 
+	/**
+	 * load json file
+	 * @param {String} url
+	 */
+	function getAjaxJson(url) {
+		var promiseObj = new Promise(function (resolve, reject) {
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', url, true);
+			//    xhr.responseType = 'json';
+
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState === 4) {
+					if (xhr.status === 200) {
+						// console.log('xhr done successfully');
+
+						var resp = xhr.responseText;
+						var respJson = JSON.parse(resp);
+						resolve(respJson);
+					} else {
+						reject(xhr.status);
+						// console.log('xhr failed');
+					}
+				}
+			};
+
+			xhr.send();
+		});
+
+		return promiseObj;
+	}
+
+	/**
+	 * load json file
+	 * @param {String} url
+	 */
+
+	/**
+	 * load asset image
+	 * @param {*} imageUrl
+	 */
+	function getImage(imageUrl) {
+		var promise = new Promise(function (resolve, reject) {
+			var image = new Image();
+			image.onload = function () {
+				resolve(image);
+			};
+			image.onerror = function () {
+				reject('image is not loaded');
+			};
+
+			image.src = imageUrl;
+		});
+
+		return promise;
+	}
+
 	function getSphere() {
 		var radius = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 2;
 		var latitudeBands = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 64;
@@ -985,8 +1041,6 @@
 			key: 'updateViewMatrix',
 			value: function updateViewMatrix() {
 				lookAt(this._viewMatrix, [this.position.x, this.position.y, this.position.z], [this.lookAtPosition.x, this.lookAtPosition.y, this.lookAtPosition.z], [0, 1, 0]);
-				// console.log(this.position);
-				// console.log(this._viewMatrix);
 			}
 		}, {
 			key: 'viewMatrix',
@@ -1011,6 +1065,8 @@
 	exports.creteBuffer = creteBuffer;
 	exports.createIndex = createIndex;
 	exports.bindBuffer = bindBuffer;
+	exports.getAjaxJson = getAjaxJson;
+	exports.getImage = getImage;
 	exports.getSphere = getSphere;
 	exports.Camera = Camera;
 	exports.glMatrix = common;

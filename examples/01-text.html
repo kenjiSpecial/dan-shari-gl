@@ -33,7 +33,7 @@
     .dsr-desc a{
         color: #ffffff;
     }
-       
+    
 </style>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
 
@@ -49,9 +49,12 @@
     <script src="./vendors/stats.min.js"></script>
     <script src="./vendors/TweenMax.js"></script>
 
-    <script src="./vendors/dsrgl.js"></script>
+    <script src="./vendors/build/dsrgl.js"></script>
     <!-- plugin -->
     <script src="./vendors/build/plugin/camera-controller.js"></script>
+    <script src="./vendors/build/plugin/text-layout.js"></script>
+    <script src="./vendors/build/plugin/text-rendering.js"></script>
+
 
     <script>
         const vertexShaderSrc = `
@@ -95,27 +98,11 @@
 
         var cameraController = new dsr.CameraController(camera);
         
-        // create sphere
-        {
-            var { vertices, normals, indices } = dsr.getSphere(5, 32, 32);
-            sphere.progoram = dsr.createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc);
-            sphere.buffers = {
-                position: dsr.creteBuffer(gl, sphere.progoram, new Float32Array(vertices), 'position'),
-                normal: dsr.creteBuffer(gl, sphere.progoram, new Float32Array(normals), 'normal'),
-                index: dsr.createIndex(gl, new Uint16Array(indices))
-            };
-            sphere.matrix = {
-                modelMatrix: dsr.mat4.create(),
-                mvMatrix: dsr.mat4.create(),
-                mvpMatrix: dsr.mat4.create()
-            };
-            sphere.uniforms = dsr.getUniformLocations(gl, sphere.progoram, ['uMVPMatrix']);
-        }
+
 
         /**
          * set debug tool(dat.gui)
          **/
-         
         let loopId;
         let player = {playAndStop: function(){
             isPlay = !isPlay;
@@ -132,9 +119,40 @@
         let playAndStopGui = gui.add(player, 'playAndStop').name('pause');
 
         let stats = new Stats();
-		document.body.appendChild(stats.dom);
+        document.body.appendChild(stats.dom);
 
-        tick();
+        /**
+         * assets load
+         **/
+
+        let assetCnt = 0;
+        let text = 
+`testsss
+hello world`;
+
+        let font = {
+            data: null,
+            image: null
+        }
+        let textLayout;
+
+        // tick();
+        startAssetsLoad();
+
+        function startAssetsLoad(){
+            dsr.getImage('./assets/fonts/roboto.png').then((image)=>{
+                assetCnt++;
+                font.image = image;
+
+            })
+
+            dsr.getAjaxJson('./assets/fonts/roboto.json').then((data)=>{
+                assetCnt++;
+                font.fontData = data;
+                texteLayout = new dsr.TextLayout(data, text)
+
+            })
+        }
 
         function resize(){
             viewportWidth = window.innerWidth;
