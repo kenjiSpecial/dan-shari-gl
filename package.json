@@ -11,7 +11,8 @@
     "build": "rollup -c",
     "start": "rollup --watch -c --configDebug",
     "plugin": "rollup -c ./plugin/rollup.config.js",
-    "serve": "concurrently \"http-server\" \"opn http://localhost:8080/examples\""
+    "serve": "concurrently \"http-server\" \"opn http://localhost:8080/examples\"",
+    "ghpage": "./shell/gh-page.sh"
   },
   "dependencies": {
   },
