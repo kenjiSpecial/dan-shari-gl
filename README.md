@@ -1,3 +1,3 @@
-# Dan-Sha-Ri GL(断捨離GL)
+# Dan-Sha-Ri GL(断シャリGL)
 
 ![](./examples/assets/images/shari.jpg)
