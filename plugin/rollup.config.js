@@ -33,37 +33,28 @@ function glsl() {
 	};
 }
 
-const defaultConfig = [
-	{
-		input: './plugin/camera-controller.js',
-		output: {
-			name: pkg.libName,
-			file: 'build/plugin/camera-controller.js',
-			format: 'umd',
-			extend: true
-		},
-		plugins: [
-			glsl(),
-			babel(babelrc()),
-			commonjs() // so Rollup can convert `ms` to an ES module
-		]
-	},
-	{
-		input: './plugin/camera-controller.js',
-		output: {
-			name: pkg.libName,
-			file: 'examples/vendors/build/plugin/camera-controller.js',
-			format: 'umd',
-			extend: true
-		},
-		plugins: [
-			glsl(),
-			babel(babelrc()),
-			commonjs() // so Rollup can convert `ms` to an ES module
-		]
-	}
-];
+let defaultConfig = [];
+let inputFiles = ['camera-controller.js', 'text-layout.js', 'text-rendering.js'];
 
-export default commandLineArgs => {
+for (let ii = 0; ii < inputFiles.length; ii++) {
+	let input = `./plugin/${inputFiles[ii]}`;
+	let outputFile0 = `build/plugin/${inputFiles[ii]}`;
+	let outputFile1 = `examples/vendors/build/plugin/${inputFiles[ii]}`;
+
+	let output0 = { name: pkg.libName, file: outputFile0, format: 'umd', extend: true };
+	let output1 = { name: pkg.libName, file: outputFile1, format: 'umd', extend: true };
+	let plugins = [
+		glsl(),
+		babel(babelrc()),
+		commonjs() // so Rollup can convert `ms` to an ES module
+	];
+
+	defaultConfig.push({ input: input, output: output0, plugins: plugins });
+	defaultConfig.push({ input: input, output: output1, plugins: plugins });
+}
+
+export default () => {
+	console.log(defaultConfig);
+
 	return defaultConfig;
 };
