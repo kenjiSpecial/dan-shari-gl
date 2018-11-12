@@ -196,6 +196,7 @@
 
 	/**
 	 * load asset image
+	 *
 	 * @param {*} imageUrl
 	 */
 	function getImage(imageUrl) {

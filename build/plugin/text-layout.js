@@ -67,7 +67,7 @@
   			var text = this.options.text;
   			var fontData = this.options.fontData;
   			this.setupSpaceGlyphs(fontData);
-  			var lines = new TextLines(text, this.options);
+  			var lines = new TextLines(text, this.options.fontData, this.options.width, this.options.start, this.options.mode, this.options.letterSpacing);
   		}
   	}, {
   		key: 'setupSpaceGlyphs',
@@ -165,29 +165,61 @@
   	createClass(TextLines, [{
   		key: 'greedy',
   		value: function greedy(text, start, end, width, mode) {
+  			//A greedy word wrapper based on LibGDX algorithm
+  			//https://github.com/libgdx/libgdx/blob/master/gdx/src/com/badlogic/gdx/graphics/g2d/BitmapFontCache.java
+
+  			var lines = [];
 
   			var testWidth = width;
 
   			if (mode === 'nowrap') testWidth = Number.MAX_VALUE;
+  			width = 100;
 
-  			// while (start < end && start < text.length) {
-  			//get next newline position
-  			console.log('end');
-  			console.log(end);
-  			var newLine = this.idxOf(text, newlineChar, start, end);
+  			while (start < end && start < text.length) {
+  				//get next newline position
 
-  			//eat whitespace at start of line
-  			while (start < newLine) {
-  				if (!this.isWhitespace(text.charAt(start))) break;
-  				start++;
+  				var newLine = this.idxOf(text, newlineChar, start, end);
+
+  				//eat whitespace at start of line
+  				while (start < newLine) {
+  					if (!this.isWhitespace(text.charAt(start))) break;
+  					start++;
+  				}
+
+  				//determine visible # of glyphs for the available width
+  				var measured = this.measure(text, this.fontData, start, newLine, testWidth);
+
+  				var lineEnd = start + (measured.end - measured.start);
+  				var nextStart = lineEnd + newlineChar.length;
+
+  				//if we had to cut the line before the next newline...
+  				if (lineEnd < newLine) {
+  					//find char to break on
+  					while (lineEnd > start) {
+  						if (this.isWhitespace(text.charAt(lineEnd))) break;
+  						lineEnd--;
+  					}
+  					if (lineEnd === start) {
+  						if (nextStart > start + newlineChar.length) nextStart--;
+  						lineEnd = nextStart; // If no characters to break, show all.
+  					} else {
+  						nextStart = lineEnd;
+  						//eat whitespace at end of line
+  						while (lineEnd > start) {
+  							if (!this.isWhitespace(text.charAt(lineEnd - newlineChar.length))) break;
+  							lineEnd--;
+  						}
+  					}
+  				}
+  				if (lineEnd >= start) {
+  					var result = this.measure(text, start, lineEnd, testWidth);
+  					lines.push(result);
+  				}
+
+  				start = nextStart;
   			}
 
-  			//determine visible # of glyphs for the available width
-  			var measured = this.measure(text, this.fontData, start, newLine, testWidth);
-
-  			var lineEnd = start + (measured.end - measured.start);
-  			start++;
-  			// }
+  			return lines;
   		}
   	}, {
   		key: 'idxOf',
@@ -208,37 +240,95 @@
   	}, {
   		key: 'measure',
   		value: function measure(text, fontData, start, end, width) {
-  			this.computeMetrics(text, fontData, start, end, width);
+  			return this.computeMetrics(text, fontData, start, end, width);
   		}
   	}, {
   		key: 'computeMetrics',
   		value: function computeMetrics(text, font, start, end, width) {
+  			var letterSpacing = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 0;
 
-  			// if (!font.chars || font.chars) {
-  			// 	return {
-  			// 		start: start,
-  			// 		end: start,
-  			// 		width: 0
-  			// 	};
-  			// }
+  			var curPen = 0;
+  			var curWidth = 0;
+  			var count = 0;
+  			var glyph;
+  			var lastGlyph;
 
-  			console.log(start);
-  			console.log(end);
-  			console.log(font.chars);
+  			if (!font.chars) {
+  				return {
+  					start: start,
+  					end: start,
+  					width: 0
+  				};
+  			}
+
+  			end = Math.min(text.length, end);
+
+  			for (var i = start; i < end; i++) {
+  				var id = text.charCodeAt(i);
+  				var glyph = this.getGlyphById(font, id);
+
+  				// console.log(glyph);
+  				if (glyph) {
+  					var xoff = glyph.xoffset;
+  					var kern = lastGlyph ? this.getKerning(font, lastGlyph.id, glyph.id) : 0;
+  					curPen += kern;
+
+  					var nextPen = curPen + glyph.xadvance + letterSpacing;
+  					var nextWidth = curPen + glyph.width;
+  					//we've hit our limit; we can't move onto the next glyph
+  					if (nextWidth >= width || nextPen >= width) break;
+
+  					//otherwise continue along our line
+  					curPen = nextPen;
+  					curWidth = nextWidth;
+  					lastGlyph = glyph;
+  				}
+  				count++;
+  			}
+
+  			if (lastGlyph) curWidth += lastGlyph.xoffset;
+
+  			return {
+  				start: start,
+  				end: start + count,
+  				width: curWidth
+  			};
   		}
   	}, {
   		key: 'getGlyphById',
-  		value: function getGlyphById(font, id) {}
+  		value: function getGlyphById(font, id) {
+  			if (!font.chars) return null;
+
+  			var glyphIdx = this.findChar(font.chars, id);
+
+  			return font.chars[glyphIdx];
+  		}
   	}, {
   		key: 'findChar',
-  		value: function findChar(array, value, start) {
-  			start = start || 0;
-  			for (var i = start; i < array.length; i++) {
-  				if (array[i].id === value) {
-  					return i;
+  		value: function findChar(fontChars, value) {
+  			// start = start || 0;
+  			// for (var i = start; i < array.length; i++) {
+  			for (var key in fontChars) {
+  				if (fontChars[key].id === value) {
+  					return key;
   				}
   			}
+  			// }
   			return -1;
+  		}
+  	}, {
+  		key: 'getKerning',
+  		value: function getKerning(font, lastId, nextId) {
+  			if (!font.kernings) return 0;
+
+  			var kernings = font.kernings;
+  			var firstId = kernings[lastId];
+  			if (firstId) {
+  				var kerningSpace = firstId[nextId];
+  				if (kerningSpace) return kerningSpace;
+  			}
+
+  			return 0;
   		}
   	}]);
   	return TextLines;
