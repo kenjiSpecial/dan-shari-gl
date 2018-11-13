@@ -9,6 +9,11 @@ var SPACE_ID = ' '.charCodeAt(0);
 var ALIGN_LEFT = 0,
 	ALIGN_CENTER = 1,
 	ALIGN_RIGHT = 2;
+
+function number(num, def) {
+	return typeof num === 'number' ? num : typeof def === 'number' ? def : 0;
+}
+
 export class TextLayout {
 	/**
 	 *
@@ -39,14 +44,98 @@ export class TextLayout {
 		const text = this.options.text;
 		const fontData = this.options.fontData;
 		this.setupSpaceGlyphs(fontData);
-		var lines = new TextLines(
+		// get lines
+		const lines = new TextLines(
 			text,
 			this.options.fontData,
 			this.options.width,
 			this.options.start,
 			this.options.mode,
 			this.options.letterSpacing
-		);
+		).lines;
+		let minWidth = this.options.width || 0;
+		let maxLineWidth = lines.reduce(function(prev, line) {
+			return Math.max(prev, line.width, minWidth);
+		}, 0);
+
+		//clear glyphs
+		glyphs = [];
+
+		//the pen position
+		let x = 0;
+		let y = 0;
+		const lineHeight = number(this.options.lineHeight, fontData.common.lineHeight);
+		const baseline = fontData.common.base;
+		const descender = lineHeight - baseline;
+		const letterSpacing = this.options.letterSpacing || 0;
+		const height = lineHeight * lines.length - descender;
+		const align = this.getAlignType(this.options.align);
+
+		y -= height;
+
+		this.width = maxLineWidth;
+		this.height = height;
+		this.descender = lineHeight - baseline;
+		this.baseline = baseline;
+		this.xHeight = getXHeight(fontData);
+		this.capHeight = getCapHeight(fontData);
+		this.lineHeight = lineHeight;
+		this.ascender = lineHeight - descender - this.xHeight;
+
+		let self = this;
+		lines.forEach(function(line, lineIndex) {
+			let start = line.start;
+			let end = line.end;
+			let lineWidth = line.width;
+			let lastGlyph;
+
+			//for each glyph in that line...
+			for (var i = start; i < end; i++) {
+				var id = text.charCodeAt(i);
+				var glyph = self.getGlyph(fontData, id);
+
+				if (glyph) {
+					if (lastGlyph) x += getKerning(fontData, lastGlyph.id, glyph.id);
+
+					var tx = x;
+					if (align === ALIGN_CENTER) tx += (maxLineWidth - lineWidth) / 2;
+					else if (align === ALIGN_RIGHT) tx += maxLineWidth - lineWidth;
+
+					glyphs.push({
+						position: [tx, y],
+						data: glyph,
+						index: i,
+						line: lineIndex
+					});
+
+					//move pen forward
+					x += glyph.xadvance + letterSpacing;
+					lastGlyph = glyph;
+				}
+			}
+
+			//move pen forward
+			y += lineHeight;
+			x = 0;
+		});
+
+		this.linesTotal = lines.length;
+		console.log(glyphs);
+		this.glyphs = glyphs;
+	}
+
+	getGlyph(font, id) {
+		var glyph = getGlyphById(font, id);
+		if (glyph) return glyph;
+		else if (id === TAB_ID) return this._fallbackTabGlyph;
+		else if (id === SPACE_ID) return this._fallbackSpaceGlyph;
+		return null;
+	}
+
+	getAlignType(align) {
+		if (align === 'center') return ALIGN_CENTER;
+		else if (align === 'right') return ALIGN_RIGHT;
+		return ALIGN_LEFT;
 	}
 
 	setupSpaceGlyphs(fontData) {
@@ -60,7 +149,7 @@ export class TextLayout {
 		//then fall back to the first glyph available
 		console.log(fontData.chars[0]);
 		const space =
-			this.getGlyphById(fontData, SPACE_ID) || this.getMGlyph(fontData) || fontData.chars[0];
+			getGlyphById(fontData, SPACE_ID) || this.getMGlyph(fontData) || fontData.chars[0];
 
 		console.log(space);
 		var tabWidth = this.options.tabSize * space.xadvance;
@@ -88,14 +177,6 @@ export class TextLayout {
 		}
 
 		return obj;
-	}
-
-	getGlyphById(fontData, id) {
-		if (!fontData.chars || fontData.chars.length === 0) return null;
-
-		var glyphIdx = this.findChar(fontData.chars, id);
-		if (glyphIdx >= 0) return fontData.chars[glyphIdx];
-		return null;
 	}
 
 	findChar(objectValue, value) {
@@ -185,8 +266,9 @@ export class TextLines {
 					}
 				}
 			}
+
 			if (lineEnd >= start) {
-				var result = this.measure(text, start, lineEnd, testWidth);
+				var result = this.measure(text, this.fontData, start, lineEnd, testWidth);
 				lines.push(result);
 			}
 
@@ -198,10 +280,7 @@ export class TextLines {
 
 	idxOf(text, chr, start, end) {
 		var idx = text.indexOf(chr, start);
-		console.log('idxOf');
-		console.log(start);
-		console.log(text, chr, start);
-		console.log(idx);
+
 		if (idx === -1 || idx > end) return end;
 		return idx;
 	}
@@ -233,12 +312,11 @@ export class TextLines {
 
 		for (var i = start; i < end; i++) {
 			var id = text.charCodeAt(i);
-			var glyph = this.getGlyphById(font, id);
+			glyph = getGlyphById(font, id);
 
 			// console.log(glyph);
 			if (glyph) {
-				let xoff = glyph.xoffset;
-				let kern = lastGlyph ? this.getKerning(font, lastGlyph.id, glyph.id) : 0;
+				let kern = lastGlyph ? getKerning(font, lastGlyph.id, glyph.id) : 0;
 				curPen += kern;
 
 				let nextPen = curPen + glyph.xadvance + letterSpacing;
@@ -262,37 +340,55 @@ export class TextLines {
 			width: curWidth
 		};
 	}
+}
 
-	getGlyphById(font, id) {
-		if (!font.chars) return null;
+function getKerning(font, lastId, nextId) {
+	if (!font.kernings) return 0;
 
-		let glyphIdx = this.findChar(font.chars, id);
-
-		return font.chars[glyphIdx];
+	let kernings = font.kernings;
+	let firstId = kernings[lastId];
+	if (firstId) {
+		let kerningSpace = firstId[nextId];
+		if (kerningSpace) return kerningSpace;
 	}
 
-	findChar(fontChars, value) {
-		// start = start || 0;
-		// for (var i = start; i < array.length; i++) {
-		for (let key in fontChars) {
-			if (fontChars[key].id === value) {
-				return key;
-			}
+	return 0;
+}
+
+function getXHeight(font) {
+	for (var i = 0; i < X_HEIGHTS.length; i++) {
+		var id = X_HEIGHTS[i].charCodeAt(0);
+		var idx = findChar(font.chars, id);
+		if (idx >= 0) return font.chars[idx].height;
+	}
+	return 0;
+}
+
+function findChar(fontChars, value) {
+	// start = start || 0;
+	// for (var i = start; i < array.length; i++) {
+	for (let key in fontChars) {
+		if (fontChars[key].id === value) {
+			return key;
 		}
-		// }
-		return -1;
 	}
+	// }
+	return -1;
+}
 
-	getKerning(font, lastId, nextId) {
-		if (!font.kernings) return 0;
+function getGlyphById(font, id) {
+	if (!font.chars) return null;
 
-		let kernings = font.kernings;
-		let firstId = kernings[lastId];
-		if (firstId) {
-			let kerningSpace = firstId[nextId];
-			if (kerningSpace) return kerningSpace;
-		}
+	let glyphIdx = findChar(font.chars, id);
 
-		return 0;
+	return font.chars[glyphIdx];
+}
+
+function getCapHeight(font) {
+	for (var i = 0; i < CAP_HEIGHTS.length; i++) {
+		var id = CAP_HEIGHTS[i].charCodeAt(0);
+		var idx = findChar(font.chars, id);
+		if (idx >= 0) return font.chars[idx].height;
 	}
+	return 0;
 }

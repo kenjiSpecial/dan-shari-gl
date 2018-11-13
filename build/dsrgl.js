@@ -6,6 +6,8 @@
 
 	var FLOAT = 0x1406;
 
+	var RGB = 0x1907;
+
 	/**
 	 * get uniform locations
 	 *
@@ -57,7 +59,7 @@
 		if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
 			return shader;
 		} else {
-			console.error("[WebGLShader]: Shader couldn't compile.");
+			console.error("[WebGLShader]: Shader couldn't compile.1");
 
 			if (gl.getShaderInfoLog(shader) !== '') {
 				console.warn('[WebGLShader]: gl.getShaderInfoLog()', type === gl.VERTEX_SHADER ? 'vertex' : 'fragment', gl.getShaderInfoLog(shader), addLineNumbers(shaderSource));
@@ -159,11 +161,122 @@
 	}
 
 	/**
+	 *
+	 * create empty texture
+	 *
+	 * @param {WebGLRenderingContext} gl
+	 * @param {*} targetTextureWidth
+	 * @param {*} targetTextureHeight
+	 */
+	function createEmptyTexture(gl, textureWidth, textureHeight) {
+		var format = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : RGB;
+
+		var targetTexture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+
+		{
+			// define size and format of level 0
+			var level = 0;
+			var border = 0;
+			var type = gl.UNSIGNED_BYTE;
+			var data = null;
+			gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureHeight, border, format, type, data);
+
+			// set the filtering so we don't need mips
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		}
+
+		return targetTexture;
+	}
+
+	/**
+	 *
+	 * @param {WebGLRenderingContext} gl
+	 * @param {Image} image
+	 * @param {number} format
+	 * @param {Boolean} isFlip
+	 *
+	 */
+	function createImageTexture(gl, image) {
+		var format = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : RGB;
+		var isFlip = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+
+		var texture = gl.createTexture();
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, isFlip);
+		gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, image);
+
+		if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+			// Yes, it's a power of 2. Generate mips.
+			gl.generateMipmap(gl.TEXTURE_2D);
+		} else {
+			// No, it's not a power of 2. Turn of mips and set
+			// wrapping to clamp to edge
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		}
+
+		return texture;
+	}
+
+	/**
+	 *
+	 * @param {WebGLRenderingContext} gl
+	 * @param {WebGLTexture} texture
+	 * @param {Image} image
+	 * @param {number} format
+	 *
+	 */
+	function updateImageTexture(gl, texture, image) {
+		var format = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : RGB;
+
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+		gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, image);
+
+		if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+			// Yes, it's a power of 2. Generate mips.
+			gl.generateMipmap(gl.TEXTURE_2D);
+		} else {
+			// No, it's not a power of 2. Turn of mips and set
+			// wrapping to clamp to edge
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		}
+	}
+
+	function isPowerOf2(value) {
+		return (value & value - 1) == 0;
+	}
+
+	/**
+	 *
+	 * @param {WebGLRenderingContext} gl
+	 * @param {WebGLTexture} texture
+	 * @param {WebGLUniformLocation} uniformLocation
+	 * @param {number} textureNum
+	 */
+	function activeTexture(gl, texture, uniformLocation) {
+		var textureNum = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
+
+		var activeTextureNum = gl.TEXTURE0 + textureNum;
+		gl.activeTexture(activeTextureNum);
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+		gl.uniform1i(uniformLocation, textureNum);
+	}
+
+	/**
 	 * load json file
 	 * @param {String} url
 	 */
+
 	function getAjaxJson(url) {
-		var promiseObj = new Promise(function (resolve, reject) {
+		var promise = new Promise(function (resolve, reject) {
 			var xhr = new XMLHttpRequest();
 			xhr.open('GET', url, true);
 			//    xhr.responseType = 'json';
@@ -186,13 +299,8 @@
 			xhr.send();
 		});
 
-		return promiseObj;
+		return promise;
 	}
-
-	/**
-	 * load json file
-	 * @param {String} url
-	 */
 
 	/**
 	 * load asset image
@@ -257,8 +365,98 @@
 
 		return {
 			vertices: vertices,
-			textures: textures,
+			uvs: textures,
 			normals: normals,
+			indices: indices
+		};
+	}
+
+	function getPlane(width, height, widthSegment, heightSegment) {
+		var vertices = [];
+		var xRate = 1 / widthSegment;
+		var yRate = 1 / heightSegment;
+
+		// set vertices and barycentric vertices
+		for (var yy = 0; yy <= heightSegment; yy++) {
+			var yPos = (-0.5 + yRate * yy) * height;
+
+			for (var xx = 0; xx <= widthSegment; xx++) {
+				var xPos = (-0.5 + xRate * xx) * width;
+				vertices.push(xPos);
+				vertices.push(yPos);
+			}
+		}
+
+		var indices = [];
+
+		for (var _yy = 0; _yy < heightSegment; _yy++) {
+			for (var _xx = 0; _xx < widthSegment; _xx++) {
+				var rowStartNum = _yy * (widthSegment + 1);
+				var nextRowStartNum = (_yy + 1) * (widthSegment + 1);
+
+				indices.push(rowStartNum + _xx);
+				indices.push(rowStartNum + _xx + 1);
+				indices.push(nextRowStartNum + _xx);
+
+				indices.push(rowStartNum + _xx + 1);
+				indices.push(nextRowStartNum + _xx + 1);
+				indices.push(nextRowStartNum + _xx);
+			}
+		}
+
+		return {
+			vertices: vertices,
+			indices: indices
+		};
+	}
+
+	/**
+	 * merge geometries into one geometry
+	 *
+	 * @param {array} geometries
+	 */
+	function mergeGeomtory(geometries) {
+		var vertices = [],
+		    normals = [],
+		    uvs = [],
+		    indices = [];
+
+		var lastVertices = 0;
+
+		for (var ii = 0; ii < geometries.length; ii++) {
+			var geometry = geometries[ii];
+
+			if (geometries.indices.length > 0) {
+				for (var _ii = 0; geometries.indices.length; _ii++) {
+					indices.push(geometry.indices[_ii] + lastVertices / 3);
+				}
+			}
+
+			if (geometry.vertices.length > 0) {
+				for (var _ii2 = 0; _ii2 < geometry.vertices.length; _ii2++) {
+					vertices.push(geometry.vertices[_ii2]);
+				}
+
+				lastVertices += geometry.vertices.length;
+			}
+
+			if (geometry.normals.length > 0) {
+				for (var _ii3 = 0; _ii3 < geometry.normals.length; _ii3++) {
+					normals.push(geometry.normals[_ii3]);
+				}
+			}
+
+			if (geometry.uvs.length > 0) {
+				for (var _ii4 = 0; _ii4 < geometry.uvs.length; _ii4++) {
+					uvs.push(geometry.uvs[_ii4]);
+				}
+			}
+		}
+
+		return {
+			vertices: vertices,
+			normals: normals,
+			uvs: uvs,
 			indices: indices
 		};
 	}
@@ -349,6 +547,18 @@
 		return out;
 	}
 
+	/**
+	 * Generates a perspective projection matrix with the given bounds.
+	 * Passing null/undefined/no value for far will generate infinite projection matrix.
+	 *
+	 * @param {mat4} out mat4 frustum matrix will be written into
+	 * @param {number} fovy Vertical field of view in radians
+	 * @param {number} aspect Aspect ratio. typically viewport width/height
+	 * @param {number} near Near bound of the frustum
+	 * @param {number} far Far bound of the frustum, can be null or Infinity
+	 * @returns {mat4} out
+	 *
+	 */
 	function perspective(out, fovy, aspect, near, far) {
 		var f = 1.0 / Math.tan(fovy / 2),
 		    nf = void 0;
@@ -374,6 +584,41 @@
 			out[10] = -1;
 			out[14] = -2 * near;
 		}
+		return out;
+	}
+
+	/**
+	 * Generates a orthogonal projection matrix with the given bounds
+	 *
+	 * @param {mat4} out mat4 frustum matrix will be written into
+	 * @param {number} left Left bound of the frustum
+	 * @param {number} right Right bound of the frustum
+	 * @param {number} bottom Bottom bound of the frustum
+	 * @param {number} top Top bound of the frustum
+	 * @param {number} near Near bound of the frustum
+	 * @param {number} far Far bound of the frustum
+	 * @returns {mat4} out
+	 */
+	function ortho(out, left, right, bottom, top, near, far) {
+		var lr = 1 / (left - right);
+		var bt = 1 / (bottom - top);
+		var nf = 1 / (near - far);
+		out[0] = -2 * lr;
+		out[1] = 0;
+		out[2] = 0;
+		out[3] = 0;
+		out[4] = 0;
+		out[5] = -2 * bt;
+		out[6] = 0;
+		out[7] = 0;
+		out[8] = 0;
+		out[9] = 0;
+		out[10] = 2 * nf;
+		out[11] = 0;
+		out[12] = (left + right) * lr;
+		out[13] = (top + bottom) * bt;
+		out[14] = (far + near) * nf;
+		out[15] = 1;
 		return out;
 	}
 
@@ -766,6 +1011,7 @@
 		create: create,
 		multiply: multiply,
 		perspective: perspective,
+		ortho: ortho,
 		identity: identity,
 		clone: clone,
 		fromTranslation: fromTranslation,
@@ -995,28 +1241,42 @@
 	  };
 	}();
 
+	var inherits = function (subClass, superClass) {
+	  if (typeof superClass !== "function" && superClass !== null) {
+	    throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
+	  }
+
+	  subClass.prototype = Object.create(superClass && superClass.prototype, {
+	    constructor: {
+	      value: subClass,
+	      enumerable: false,
+	      writable: true,
+	      configurable: true
+	    }
+	  });
+	  if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
+	};
+
+	var possibleConstructorReturn = function (self, call) {
+	  if (!self) {
+	    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+	  }
+
+	  return call && (typeof call === "object" || typeof call === "function") ? call : self;
+	};
+
 	var Camera = function () {
-		function Camera(width, height) {
-			var fov = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 45;
-			var near = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0.1;
-			var far = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 1000;
+		function Camera() {
 			classCallCheck(this, Camera);
 
 			this.position = { x: 0, y: 0, z: 0 };
 			this.lookAtPosition = { x: 0, y: 0, z: 0 };
 
-			this._viewMatrix = create();
-			this._projectionMatrix = create();
-
-			this.updatePerspective(width, height, fov, near, far);
+			this.viewMatrix = create();
+			this.projectionMatrix = create();
 		}
 
 		createClass(Camera, [{
-			key: 'updatePerspective',
-			value: function updatePerspective(width, height, fov, near, far) {
-				perspective(this._projectionMatrix, fov / 180 * Math.PI, width / height, near, far);
-			}
-		}, {
 			key: 'updatePosition',
 			value: function updatePosition() {
 				var xx = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
@@ -1041,21 +1301,56 @@
 		}, {
 			key: 'updateViewMatrix',
 			value: function updateViewMatrix() {
-				lookAt(this._viewMatrix, [this.position.x, this.position.y, this.position.z], [this.lookAtPosition.x, this.lookAtPosition.y, this.lookAtPosition.z], [0, 1, 0]);
-			}
-		}, {
-			key: 'viewMatrix',
-			get: function get$$1() {
-				return this._viewMatrix;
-			}
-		}, {
-			key: 'projectionMatrix',
-			get: function get$$1() {
-				return this._projectionMatrix;
+				lookAt(this.viewMatrix, [this.position.x, this.position.y, this.position.z], [this.lookAtPosition.x, this.lookAtPosition.y, this.lookAtPosition.z], [0, 1, 0]);
 			}
 		}]);
 		return Camera;
 	}();
+
+	var PerspectiveCamera = function (_Camera) {
+		inherits(PerspectiveCamera, _Camera);
+
+		function PerspectiveCamera(width, height) {
+			var fov = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 45;
+			var near = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0.1;
+			var far = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 1000;
+			classCallCheck(this, PerspectiveCamera);
+
+			var _this = possibleConstructorReturn(this, (PerspectiveCamera.__proto__ || Object.getPrototypeOf(PerspectiveCamera)).call(this));
+
+			_this.updatePerspective(width, height, fov, near, far);
+			return _this;
+		}
+
+		createClass(PerspectiveCamera, [{
+			key: 'updatePerspective',
+			value: function updatePerspective(width, height, fov, near, far) {
+				perspective(this.projectionMatrix, fov / 180 * Math.PI, width / height, near, far);
+			}
+		}]);
+		return PerspectiveCamera;
+	}(Camera);
+
+	var OrthoCamera = function (_Camera2) {
+		inherits(OrthoCamera, _Camera2);
+
+		function OrthoCamera(left, right, bottom, top, near, far) {
+			classCallCheck(this, OrthoCamera);
+
+			var _this2 = possibleConstructorReturn(this, (OrthoCamera.__proto__ || Object.getPrototypeOf(OrthoCamera)).call(this));
+
+			_this2.updatePerspective(left, right, bottom, top, near, far);
+			return _this2;
+		}
+
+		createClass(OrthoCamera, [{
+			key: 'updatePerspective',
+			value: function updatePerspective(left, right, bottom, top, near, far) {
+				ortho(this.projectionMatrix, left, right, bottom, top, near, far);
+			}
+		}]);
+		return OrthoCamera;
+	}(Camera);
 
 	console.log('[danshariGL] version: 0.1.0, %o', 'https://github.com/kenjiSpecial/tubugl');
 
@@ -1066,10 +1361,18 @@
 	exports.creteBuffer = creteBuffer;
 	exports.createIndex = createIndex;
 	exports.bindBuffer = bindBuffer;
+	exports.createEmptyTexture = createEmptyTexture;
+	exports.createImageTexture = createImageTexture;
+	exports.updateImageTexture = updateImageTexture;
+	exports.activeTexture = activeTexture;
 	exports.getAjaxJson = getAjaxJson;
 	exports.getImage = getImage;
 	exports.getSphere = getSphere;
+	exports.getPlane = getPlane;
+	exports.mergeGeomtory = mergeGeomtory;
 	exports.Camera = Camera;
+	exports.PerspectiveCamera = PerspectiveCamera;
+	exports.OrthoCamera = OrthoCamera;
 	exports.glMatrix = common;
 	exports.mat4 = mat4;
 	exports.quat = quat;
