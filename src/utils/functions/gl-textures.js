@@ -8,7 +8,16 @@ import { RGB } from '../consts';
  * @param {*} targetTextureWidth
  * @param {*} targetTextureHeight
  */
-export function createEmptyTexture(gl, textureWidth, textureHeight, format = RGB) {
+export function createEmptyTexture(
+	gl,
+	textureWidth,
+	textureHeight,
+	format = RGB,
+	minFilter = LINEAR,
+	magFilter = LINEAR,
+	wrapS = CLAMP_TO_EDGE,
+	wrapT = CLAMP_TO_EDGE
+) {
 	const targetTexture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, targetTexture);
 
@@ -40,6 +49,7 @@ export function createEmptyTexture(gl, textureWidth, textureHeight, format = RGB
 }
 
 /**
+ * create texture from image
  *
  * @param {WebGLRenderingContext} gl
  * @param {Image} image
@@ -47,14 +57,14 @@ export function createEmptyTexture(gl, textureWidth, textureHeight, format = RGB
  * @param {Boolean} isFlip
  *
  */
-export function createImageTexture(gl, image, format = RGB, isFlip = false) {
+export function createImageTexture(gl, image, format = RGB, isFlip = false, isMipmap = false) {
 	let texture = gl.createTexture();
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 	gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, isFlip);
 	gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, image);
 
-	if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+	if (isPowerOf2(image.width) && isPowerOf2(image.height) && isMipmap) {
 		// Yes, it's a power of 2. Generate mips.
 		gl.generateMipmap(gl.TEXTURE_2D);
 	} else {

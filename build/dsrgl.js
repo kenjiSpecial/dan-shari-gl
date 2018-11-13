@@ -192,6 +192,7 @@
 	}
 
 	/**
+	 * create texture from image
 	 *
 	 * @param {WebGLRenderingContext} gl
 	 * @param {Image} image
@@ -202,6 +203,7 @@
 	function createImageTexture(gl, image) {
 		var format = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : RGB;
 		var isFlip = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+		var isMipmap = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
 
 		var texture = gl.createTexture();
 		gl.activeTexture(gl.TEXTURE0);
@@ -209,7 +211,7 @@
 		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, isFlip);
 		gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, image);
 
-		if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+		if (isPowerOf2(image.width) && isPowerOf2(image.height) && isMipmap) {
 			// Yes, it's a power of 2. Generate mips.
 			gl.generateMipmap(gl.TEXTURE_2D);
 		} else {
@@ -460,6 +462,248 @@
 			indices: indices
 		};
 	}
+
+	function createSimpleBox(width, height, depth) {
+		var x = -width / 2;
+		var y = -height / 2;
+		var z = -depth / 2;
+
+		var fbl = {
+			x: x,
+			y: y,
+			z: z + depth
+		};
+		var fbr = {
+			x: x + width,
+			y: y,
+			z: z + depth
+		};
+		var ftl = {
+			x: x,
+			y: y + height,
+			z: z + depth
+		};
+		var ftr = {
+			x: x + width,
+			y: y + height,
+			z: z + depth
+		};
+		var bbl = {
+			x: x,
+			y: y,
+			z: z
+		};
+		var bbr = {
+			x: x + width,
+			y: y,
+			z: z
+		};
+		var btl = {
+			x: x,
+			y: y + height,
+			z: z
+		};
+		var btr = {
+			x: x + width,
+			y: y + height,
+			z: z
+		};
+
+		var positions = new Float32Array([
+		//front
+		fbl.x, fbl.y, fbl.z, fbr.x, fbr.y, fbr.z, ftl.x, ftl.y, ftl.z, ftl.x, ftl.y, ftl.z, fbr.x, fbr.y, fbr.z, ftr.x, ftr.y, ftr.z,
+
+		//right
+		fbr.x, fbr.y, fbr.z, bbr.x, bbr.y, bbr.z, ftr.x, ftr.y, ftr.z, ftr.x, ftr.y, ftr.z, bbr.x, bbr.y, bbr.z, btr.x, btr.y, btr.z,
+
+		//back
+		fbr.x, bbr.y, bbr.z, bbl.x, bbl.y, bbl.z, btr.x, btr.y, btr.z, btr.x, btr.y, btr.z, bbl.x, bbl.y, bbl.z, btl.x, btl.y, btl.z,
+
+		//left
+		bbl.x, bbl.y, bbl.z, fbl.x, fbl.y, fbl.z, btl.x, btl.y, btl.z, btl.x, btl.y, btl.z, fbl.x, fbl.y, fbl.z, ftl.x, ftl.y, ftl.z,
+
+		//top
+		ftl.x, ftl.y, ftl.z, ftr.x, ftr.y, ftr.z, btl.x, btl.y, btl.z, btl.x, btl.y, btl.z, ftr.x, ftr.y, ftr.z, btr.x, btr.y, btr.z,
+
+		//bottom
+		bbl.x, bbl.y, bbl.z, bbr.x, bbr.y, bbr.z, fbl.x, fbl.y, fbl.z, fbl.x, fbl.y, fbl.z, bbr.x, bbr.y, bbr.z, fbr.x, fbr.y, fbr.z]);
+
+		var layoutPosition = new Float32Array([
+		// front
+		1, 2,
+		//
+		2, 2,
+		//
+		1, 1,
+		//
+		//
+		1, 1,
+		//
+		2, 2,
+		//
+		2, 1,
+		//
+		// right
+		//
+		1 + 1, 2,
+		//
+		2 + 1, 2,
+		//
+		1 + 1, 1,
+		//
+		//
+		1 + 1, 1,
+		//
+		2 + 1, 2,
+		//
+		2 + 1, 1,
+		//
+		// back
+		//
+		1 + 2, 2,
+		//
+		2 + 2, 2,
+		//
+		1 + 2, 1,
+		//
+		//
+		1 + 2, 1,
+		//
+		2 + 2, 2,
+		//
+		2 + 2, 1,
+		//
+		//
+		// back
+		//
+		1 - 1, 2,
+		//
+		2 - 1, 2,
+		//
+		1 - 1, 1,
+		//
+		//
+		1 - 1, 1,
+		//
+		2 - 1, 2,
+		//
+		2 - 1, 1,
+		//
+		// top
+		//
+		1, 2 - 1,
+		//
+		2, 2 - 1,
+		//
+		1, 1 - 1,
+		//
+		//
+		1, 1 - 1,
+		//
+		2, 2 - 1,
+		//
+		2, 1 - 1,
+		//
+		// bottom
+		//
+		1, 2 + 1,
+		//
+		2, 2 + 1,
+		//
+		1, 1 + 1,
+		//
+		//
+		1, 1 + 1,
+		//
+		2, 2 + 1,
+		//
+		2, 1 + 1
+		//
+		]);
+
+		var uvs = new Float32Array([
+		//front
+		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1,
+
+		//right
+		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1,
+
+		//back
+		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1,
+
+		//left
+		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1,
+
+		//top
+		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1,
+
+		//bottom
+		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1]);
+
+		var normals = new Float32Array(positions.length);
+		var i = void 0,
+		    count = void 0;
+		var ni = void 0;
+
+		for (i = 0, count = positions.length / 3; i < count; i++) {
+			ni = i * 3;
+
+			normals[ni] = parseInt(i / 6, 10) === 1 ? 1 : parseInt(i / 6, 10) === 3 ? -1 : 0;
+
+			normals[ni + 1] = parseInt(i / 6, 10) === 4 ? 1 : parseInt(i / 6, 10) === 5 ? -1 : 0;
+
+			normals[ni + 2] = parseInt(i / 6, 10) === 0 ? 1 : parseInt(i / 6, 10) === 2 ? -1 : 0;
+		}
+
+		return {
+			positions: positions,
+			normals: normals,
+			uvs: uvs,
+			layoutPosition: layoutPosition
+		};
+	}
+
+	function createSimplePlane(width, height) {
+		var x = -width / 2;
+		var y = -height / 2;
+
+		var bl = {
+			x: x,
+			y: y,
+			z: 0
+		};
+		var br = {
+			x: x + width,
+			y: y,
+			z: 0
+		};
+		var tl = {
+			x: x,
+			y: y + height,
+			z: 0
+		};
+		var tr = {
+			x: x + width,
+			y: y + height,
+			z: 0
+		};
+
+		var positions = new Float32Array([bl.x, bl.y, bl.z, br.x, br.y, br.z, tl.x, tl.y, tl.z, tl.x, tl.y, tl.z, br.x, br.y, br.z, tr.x, tr.y, tr.z]);
+
+		var uvs = new Float32Array([
+		//front
+		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1]);
+
+		var normals = new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]);
+
+		return {
+			positions: positions,
+			normals: normals,
+			uvs: uvs
+		};
+	}
+
+	// segment is one
 
 	var EPSILON = 0.000001;
 	var ARRAY_TYPE = typeof Float32Array !== 'undefined' ? Float32Array : Array;
@@ -1035,8 +1279,32 @@
 		return out;
 	}
 
+	/**
+	 * Rotates a quaternion by the given angle about the X axis
+	 *
+	 * @param {quat} out quat receiving operation result
+	 * @param {quat} a quat to rotate
+	 * @param {number} rad angle (in radians) to rotate
+	 * @returns {quat} out
+	 */
+	function rotateX(out, a, rad) {
+		rad *= 0.5;
+		var ax = a[0],
+		    ay = a[1],
+		    az = a[2],
+		    aw = a[3];
+		var bx = Math.sin(rad),
+		    bw = Math.cos(rad);
+		out[0] = ax * bw + aw * bx;
+		out[1] = ay * bw + az * bx;
+		out[2] = az * bw - ay * bx;
+		out[3] = aw * bw - ax * bx;
+		return out;
+	}
+
 	var quat = /*#__PURE__*/Object.freeze({
-		create: create$1
+		create: create$1,
+		rotateX: rotateX
 	});
 
 	function create$2() {
@@ -1352,7 +1620,7 @@
 		return OrthoCamera;
 	}(Camera);
 
-	console.log('[danshariGL] version: 0.2.1, %o', 'https://github.com/kenjiSpecial/tubugl');
+	console.log('[danshariGL] version: 0.2.2, %o', 'https://github.com/kenjiSpecial/tubugl');
 
 	exports.getUniformLocations = getUniformLocations;
 	exports.addLineNumbers = addLineNumbers;
@@ -1370,6 +1638,8 @@
 	exports.getSphere = getSphere;
 	exports.getPlane = getPlane;
 	exports.mergeGeomtory = mergeGeomtory;
+	exports.createSimpleBox = createSimpleBox;
+	exports.createSimplePlane = createSimplePlane;
 	exports.Camera = Camera;
 	exports.PerspectiveCamera = PerspectiveCamera;
 	exports.OrthoCamera = OrthoCamera;
