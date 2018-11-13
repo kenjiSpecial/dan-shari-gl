@@ -108,7 +108,7 @@
 	 *
 	 * @returns {object} uniformLocation
 	 */
-	function creteBuffer(gl, program, data, str) {
+	function createBuffer(gl, program, data, str) {
 		var buffer = gl.createBuffer();
 		var location = gl.getAttribLocation(program, str);
 
@@ -1352,13 +1352,13 @@
 		return OrthoCamera;
 	}(Camera);
 
-	console.log('[danshariGL] version: 0.1.0, %o', 'https://github.com/kenjiSpecial/tubugl');
+	console.log('[danshariGL] version: 0.2.1, %o', 'https://github.com/kenjiSpecial/tubugl');
 
 	exports.getUniformLocations = getUniformLocations;
 	exports.addLineNumbers = addLineNumbers;
 	exports.compileGLShader = compileGLShader;
 	exports.createPrgoram = createPrgoram;
-	exports.creteBuffer = creteBuffer;
+	exports.createBuffer = createBuffer;
 	exports.createIndex = createIndex;
 	exports.bindBuffer = bindBuffer;
 	exports.createEmptyTexture = createEmptyTexture;

@@ -198,8 +198,8 @@ hello world`;
             webglTextMesh = {
                 program: program,
                 buffers: {
-                    position: dsr.creteBuffer(gl, program, vertices, 'position'),
-                    uv: dsr.creteBuffer(gl, program, uvs, 'uv'),
+                    position: dsr.createBuffer(gl, program, vertices, 'position'),
+                    uv: dsr.createBuffer(gl, program, uvs, 'uv'),
                     index: dsr.createIndex(gl, indices)
                 },
                 matrix: {
@@ -218,8 +218,8 @@ hello world`;
             textMesh = {
                 program: program,
                 buffers: {
-                    position: dsr.creteBuffer(gl, program, vertices, 'position'),
-                    uv: dsr.creteBuffer(gl, program, uvs, 'uv'),
+                    position: dsr.createBuffer(gl, program, vertices, 'position'),
+                    uv: dsr.createBuffer(gl, program, uvs, 'uv'),
                     index: dsr.createIndex(gl, indices)
                 },
                 matrix: {
