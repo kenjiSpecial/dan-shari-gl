@@ -77,17 +77,28 @@
         }
         `;
 
+        const fragment2ShaderSrc = `
+        precision highp float;
+
+        void main(){
+            gl_FragColor = vec4(0.6, 0.6, 0.8, 1.0);
+        }
+        `;
+
 
         var canvas = document.createElement('canvas');
         var gl = canvas.getContext('webgl');
         document.body.appendChild(canvas);
         
         var viewportWidth, viewportHeight;
-        var sphere = {}
+
+        var sphere = {};
+        var materialBall = {};
+        var plane = {};
 
         resize();
 
-        var camera = new dsr.Camera(window.innerWidth, window.innerHeight, 45, 0.1, 1000); 
+        var camera = new dsr.PerspectiveCamera(window.innerWidth, window.innerHeight, 45, 0.1, 1000); 
         camera.updatePosition(0, 0, 15);
         camera.updateLookAtPosition(0, 0, 0);
         camera.updateViewMatrix();
@@ -95,16 +106,13 @@
 
         var cameraController = new dsr.CameraController(camera);
         
-
-
-
         // create sphere
         {
             var { vertices, normals, indices } = dsr.getSphere(5, 32, 32);
             sphere.progoram = dsr.createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc);
             sphere.buffers = {
-                position: dsr.creteBuffer(gl, sphere.progoram, new Float32Array(vertices), 'position'),
-                normal: dsr.creteBuffer(gl, sphere.progoram, new Float32Array(normals), 'normal'),
+                position: dsr.createBuffer(gl, sphere.progoram, new Float32Array(vertices), 'position'),
+                normal: dsr.createBuffer(gl, sphere.progoram, new Float32Array(normals), 'normal'),
                 index: dsr.createIndex(gl, new Uint16Array(indices))
             };
             sphere.matrix = {
@@ -115,10 +123,20 @@
             sphere.uniforms = dsr.getUniformLocations(gl, sphere.progoram, ['uMVPMatrix']);
         }
 
+        // create plane
+        {
+            var {vertices, indices} = dsr.createSimplePlane(25, 25);
+            plane.progoram = dsr.createPrgoram(gl, vertexShaderSrc, fragment2ShaderSrc);
+            plane.buffers = {}
+
+        }
+
+
+
+
         /**
          * set debug tool(dat.gui)
          **/
-         
         let loopId;
         let player = {playAndStop: function(){
             isPlay = !isPlay;
@@ -151,35 +169,27 @@
         function tick(){
             stats.update();
 
-            render();
-                    
-            loopId = requestAnimationFrame(tick);
-        }
-
-
-        function render(){
+            dsr.mat4.multiply(sphere.matrix.mvMatrix, camera.viewMatrix, sphere.matrix.modelMatrix);
+            dsr.mat4.multiply(sphere.matrix.mvpMatrix, camera.projectionMatrix, sphere.matrix.mvMatrix);
+        
             gl.clearColor(0, 0, 0, 1);
             gl.enable(gl.DEPTH_TEST);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
             gl.viewport(0, 0, viewportWidth, viewportHeight);
 
-            if(sphere){
-                dsr.mat4.multiply(sphere.matrix.mvMatrix, camera.viewMatrix, sphere.matrix.modelMatrix);
-                dsr.mat4.multiply(sphere.matrix.mvpMatrix, camera.projectionMatrix, sphere.matrix.mvMatrix);
-        
-                gl.useProgram(sphere.progoram);
+            gl.useProgram(sphere.progoram);
 
-                dsr.bindBuffer(gl, sphere.buffers.position.buffer, sphere.buffers.position.location, 3); 
-                dsr.bindBuffer(gl, sphere.buffers.normal.buffer, sphere.buffers.normal.location, 3);
+            dsr.bindBuffer(gl, sphere.buffers.position.buffer, sphere.buffers.position.location, 3); 
+            dsr.bindBuffer(gl, sphere.buffers.normal.buffer, sphere.buffers.normal.location, 3);
 
-                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphere.buffers.index.buffer);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphere.buffers.index.buffer);
 
-                gl.uniformMatrix4fv(sphere.uniforms.uMVPMatrix, false, sphere.matrix.mvpMatrix);
-                
-                gl.drawElements(gl.TRIANGLES, sphere.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
-            }
-
+            gl.uniformMatrix4fv(sphere.uniforms.uMVPMatrix, false, sphere.matrix.mvpMatrix);
+            
+            gl.drawElements(gl.TRIANGLES, sphere.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
+                    
+            loopId = requestAnimationFrame(tick);
         }
 
     </script>
