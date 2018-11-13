@@ -29,9 +29,21 @@
   }();
 
   // convert layout-bmfont-text into layout
+  // https://github.com/Jam3/layout-bmfont-text
+
+  var X_HEIGHTS = ['x', 'e', 'a', 'o', 'n', 's', 'r', 'c', 'u', 'm', 'v', 'w', 'z'];
   var M_WIDTHS = ['m', 'w'];
+  var CAP_HEIGHTS = ['H', 'I', 'N', 'E', 'F', 'K', 'L', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
   var TAB_ID = '\t'.charCodeAt(0);
   var SPACE_ID = ' '.charCodeAt(0);
+  var ALIGN_LEFT = 0,
+      ALIGN_CENTER = 1,
+      ALIGN_RIGHT = 2;
+
+  function number(num, def) {
+  	return typeof num === 'number' ? num : typeof def === 'number' ? def : 0;
+  }
+
   var TextLayout = function () {
   	/**
     *
@@ -67,7 +79,89 @@
   			var text = this.options.text;
   			var fontData = this.options.fontData;
   			this.setupSpaceGlyphs(fontData);
-  			var lines = new TextLines(text, this.options.fontData, this.options.width, this.options.start, this.options.mode, this.options.letterSpacing);
+  			// get lines
+  			var lines = new TextLines(text, this.options.fontData, this.options.width, this.options.start, this.options.mode, this.options.letterSpacing).lines;
+  			var minWidth = this.options.width || 0;
+  			var maxLineWidth = lines.reduce(function (prev, line) {
+  				return Math.max(prev, line.width, minWidth);
+  			}, 0);
+
+  			//clear glyphs
+  			glyphs = [];
+
+  			//the pen position
+  			var x = 0;
+  			var y = 0;
+  			var lineHeight = number(this.options.lineHeight, fontData.common.lineHeight);
+  			var baseline = fontData.common.base;
+  			var descender = lineHeight - baseline;
+  			var letterSpacing = this.options.letterSpacing || 0;
+  			var height = lineHeight * lines.length - descender;
+  			var align = this.getAlignType(this.options.align);
+
+  			y -= height;
+
+  			this.width = maxLineWidth;
+  			this.height = height;
+  			this.descender = lineHeight - baseline;
+  			this.baseline = baseline;
+  			this.xHeight = getXHeight(fontData);
+  			this.capHeight = getCapHeight(fontData);
+  			this.lineHeight = lineHeight;
+  			this.ascender = lineHeight - descender - this.xHeight;
+
+  			var self = this;
+  			lines.forEach(function (line, lineIndex) {
+  				var start = line.start;
+  				var end = line.end;
+  				var lineWidth = line.width;
+  				var lastGlyph = void 0;
+
+  				//for each glyph in that line...
+  				for (var i = start; i < end; i++) {
+  					var id = text.charCodeAt(i);
+  					var glyph = self.getGlyph(fontData, id);
+
+  					if (glyph) {
+  						if (lastGlyph) x += getKerning(fontData, lastGlyph.id, glyph.id);
+
+  						var tx = x;
+  						if (align === ALIGN_CENTER) tx += (maxLineWidth - lineWidth) / 2;else if (align === ALIGN_RIGHT) tx += maxLineWidth - lineWidth;
+
+  						glyphs.push({
+  							position: [tx, y],
+  							data: glyph,
+  							index: i,
+  							line: lineIndex
+  						});
+
+  						//move pen forward
+  						x += glyph.xadvance + letterSpacing;
+  						lastGlyph = glyph;
+  					}
+  				}
+
+  				//move pen forward
+  				y += lineHeight;
+  				x = 0;
+  			});
+
+  			this.linesTotal = lines.length;
+  			console.log(glyphs);
+  			this.glyphs = glyphs;
+  		}
+  	}, {
+  		key: 'getGlyph',
+  		value: function getGlyph(font, id) {
+  			var glyph = getGlyphById(font, id);
+  			if (glyph) return glyph;else if (id === TAB_ID) return this._fallbackTabGlyph;else if (id === SPACE_ID) return this._fallbackSpaceGlyph;
+  			return null;
+  		}
+  	}, {
+  		key: 'getAlignType',
+  		value: function getAlignType(align) {
+  			if (align === 'center') return ALIGN_CENTER;else if (align === 'right') return ALIGN_RIGHT;
+  			return ALIGN_LEFT;
   		}
   	}, {
   		key: 'setupSpaceGlyphs',
@@ -81,7 +175,7 @@
   			//then fall back to the 'm' or 'w' glyphs
   			//then fall back to the first glyph available
   			console.log(fontData.chars[0]);
-  			var space = this.getGlyphById(fontData, SPACE_ID) || this.getMGlyph(fontData) || fontData.chars[0];
+  			var space = getGlyphById(fontData, SPACE_ID) || this.getMGlyph(fontData) || fontData.chars[0];
 
   			console.log(space);
   			var tabWidth = this.options.tabSize * space.xadvance;
@@ -110,15 +204,6 @@
   			}
 
   			return obj;
-  		}
-  	}, {
-  		key: 'getGlyphById',
-  		value: function getGlyphById(fontData, id) {
-  			if (!fontData.chars || fontData.chars.length === 0) return null;
-
-  			var glyphIdx = this.findChar(fontData.chars, id);
-  			if (glyphIdx >= 0) return fontData.chars[glyphIdx];
-  			return null;
   		}
   	}, {
   		key: 'findChar',
@@ -173,7 +258,6 @@
   			var testWidth = width;
 
   			if (mode === 'nowrap') testWidth = Number.MAX_VALUE;
-  			width = 100;
 
   			while (start < end && start < text.length) {
   				//get next newline position
@@ -211,24 +295,22 @@
   						}
   					}
   				}
+
   				if (lineEnd >= start) {
-  					var result = this.measure(text, start, lineEnd, testWidth);
+  					var result = this.measure(text, this.fontData, start, lineEnd, testWidth);
   					lines.push(result);
   				}
 
   				start = nextStart;
   			}
 
-  			return lines;
+  			this.lines = lines;
   		}
   	}, {
   		key: 'idxOf',
   		value: function idxOf(text, chr, start, end) {
   			var idx = text.indexOf(chr, start);
-  			console.log('idxOf');
-  			console.log(start);
-  			console.log(text, chr, start);
-  			console.log(idx);
+
   			if (idx === -1 || idx > end) return end;
   			return idx;
   		}
@@ -265,12 +347,11 @@
 
   			for (var i = start; i < end; i++) {
   				var id = text.charCodeAt(i);
-  				var glyph = this.getGlyphById(font, id);
+  				glyph = getGlyphById(font, id);
 
   				// console.log(glyph);
   				if (glyph) {
-  					var xoff = glyph.xoffset;
-  					var kern = lastGlyph ? this.getKerning(font, lastGlyph.id, glyph.id) : 0;
+  					var kern = lastGlyph ? getKerning(font, lastGlyph.id, glyph.id) : 0;
   					curPen += kern;
 
   					var nextPen = curPen + glyph.xadvance + letterSpacing;
@@ -294,45 +375,60 @@
   				width: curWidth
   			};
   		}
-  	}, {
-  		key: 'getGlyphById',
-  		value: function getGlyphById(font, id) {
-  			if (!font.chars) return null;
-
-  			var glyphIdx = this.findChar(font.chars, id);
-
-  			return font.chars[glyphIdx];
-  		}
-  	}, {
-  		key: 'findChar',
-  		value: function findChar(fontChars, value) {
-  			// start = start || 0;
-  			// for (var i = start; i < array.length; i++) {
-  			for (var key in fontChars) {
-  				if (fontChars[key].id === value) {
-  					return key;
-  				}
-  			}
-  			// }
-  			return -1;
-  		}
-  	}, {
-  		key: 'getKerning',
-  		value: function getKerning(font, lastId, nextId) {
-  			if (!font.kernings) return 0;
-
-  			var kernings = font.kernings;
-  			var firstId = kernings[lastId];
-  			if (firstId) {
-  				var kerningSpace = firstId[nextId];
-  				if (kerningSpace) return kerningSpace;
-  			}
-
-  			return 0;
-  		}
   	}]);
   	return TextLines;
   }();
+
+  function getKerning(font, lastId, nextId) {
+  	if (!font.kernings) return 0;
+
+  	var kernings = font.kernings;
+  	var firstId = kernings[lastId];
+  	if (firstId) {
+  		var kerningSpace = firstId[nextId];
+  		if (kerningSpace) return kerningSpace;
+  	}
+
+  	return 0;
+  }
+
+  function getXHeight(font) {
+  	for (var i = 0; i < X_HEIGHTS.length; i++) {
+  		var id = X_HEIGHTS[i].charCodeAt(0);
+  		var idx = findChar(font.chars, id);
+  		if (idx >= 0) return font.chars[idx].height;
+  	}
+  	return 0;
+  }
+
+  function findChar(fontChars, value) {
+  	// start = start || 0;
+  	// for (var i = start; i < array.length; i++) {
+  	for (var key in fontChars) {
+  		if (fontChars[key].id === value) {
+  			return key;
+  		}
+  	}
+  	// }
+  	return -1;
+  }
+
+  function getGlyphById(font, id) {
+  	if (!font.chars) return null;
+
+  	var glyphIdx = findChar(font.chars, id);
+
+  	return font.chars[glyphIdx];
+  }
+
+  function getCapHeight(font) {
+  	for (var i = 0; i < CAP_HEIGHTS.length; i++) {
+  		var id = CAP_HEIGHTS[i].charCodeAt(0);
+  		var idx = findChar(font.chars, id);
+  		if (idx >= 0) return font.chars[idx].height;
+  	}
+  	return 0;
+  }
 
   exports.TextLayout = TextLayout;
   exports.TextLines = TextLines;

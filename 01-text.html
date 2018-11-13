@@ -59,46 +59,48 @@
     <script>
         const vertexShaderSrc = `
         precision highp float;
+
         attribute vec4 position;
-        attribute vec3 normal;
+        attribute vec2 uv;
 
         uniform mat4 uMVPMatrix;
-
-        varying vec3 vNormal;
-
+        varying vec2 vUv;
         void main() {
             gl_Position = uMVPMatrix * position;
-            vNormal = normal;
+            vUv = uv;
         }`;
 
         const fragmentShaderSrc = `
         precision highp float;
+        
+        uniform sampler2D uTexture;
 
-        varying vec3 vNormal;
+        varying vec2 vUv;
+
         void main(){
-            gl_FragColor = vec4(vNormal, 1.0);
+            gl_FragColor = texture2D(uTexture, vUv);
         }
         `;
 
 
-        var canvas = document.createElement('canvas');
-        var gl = canvas.getContext('webgl');
-        document.body.appendChild(canvas);
+        var glCanvas = document.createElement('canvas');
+        var gl = glCanvas.getContext('webgl');
+        document.body.appendChild(glCanvas);
+
+        var twoDCanvas = document.createElement('canvas');
+        twoDCanvas.style.background = '#333333';
+        var context = twoDCanvas.getContext('2d');
+        document.body.appendChild(twoDCanvas);
         
         var viewportWidth, viewportHeight;
         var sphere = {}
 
         resize();
 
-        var camera = new dsr.Camera(window.innerWidth, window.innerHeight, 45, 0.1, 1000); 
+        var camera = new dsr.OrthoCamera(-viewportWidth/2, viewportWidth/2, - viewportHeight/2, viewportHeight/2 , 0.1, 1000); 
         camera.updatePosition(0, 0, 15);
         camera.updateLookAtPosition(0, 0, 0);
         camera.updateViewMatrix();
-
-
-        var cameraController = new dsr.CameraController(camera);
-        
-
 
         /**
          * set debug tool(dat.gui)
@@ -129,12 +131,15 @@
         let text = 
 `testsss
 hello world`;
+        let textCanvas = `canvas`;
+        let textWebGL = `WebGL`;
 
         let font = {
             data: null,
             image: null
         }
         let textLayout;
+        let webglTextMesh, textMesh;
 
         // tick();
         startAssetsLoad();
@@ -143,37 +148,192 @@ hello world`;
             dsr.getImage('./assets/fonts/roboto.png').then((image)=>{
                 assetCnt++;
                 font.image = image;
-
+                
+                if(assetCnt == 2) {
+                    initTextRendering();
+                    render();
+                }
             })
 
             dsr.getAjaxJson('./assets/fonts/roboto.json').then((data)=>{
                 assetCnt++;
                 font.fontData = data;
-                texteLayout = new dsr.TextLayout(data, text)
+                textLayout = new dsr.TextLayout(data, text);
+                textCanvas = new dsr.TextLayout(data, textCanvas);
+                textWebGL = new dsr.TextLayout(data, textWebGL);
 
-            })
+                if(assetCnt == 2) {
+                    initTextRendering();
+                    render();
+                }
+            });
         }
-
+        
         function resize(){
             viewportWidth = window.innerWidth;
-            viewportHeight = window.innerHeight;
-            canvas.width = viewportWidth;
-            canvas.height = viewportHeight;
+            viewportHeight = window.innerHeight/2;
+
+            twoDCanvas.width = viewportWidth;
+            twoDCanvas.height = viewportHeight;
+
+            glCanvas.width = viewportWidth;
+            glCanvas.height = viewportHeight;
 
             if(camera) camera.resize(viewportHeight, viewportHeight);
+        }
+
+        function initTextRendering(){
+            var webglTextRenderging = new dsr.TextRendering(gl, textWebGL, font.image);
+            var { vertices, uvs, indices } = webglTextRenderging;
+
+
+            var program = dsr.createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc); 
+            var fontTexture = dsr.createImageTexture(gl, font.image);
+
+            var modelMatrix = dsr.mat4.create();
+            dsr.mat4.fromTranslation(modelMatrix, [-viewportWidth/2 + textWebGL.width/2 + 20, -viewportHeight/2 + 40 + textWebGL.height/2, 0]);
+
+            var fontTexture = dsr.createImageTexture(gl, font.image, gl.RGBA, true);
+            
+            webglTextMesh = {
+                program: program,
+                buffers: {
+                    position: dsr.creteBuffer(gl, program, vertices, 'position'),
+                    uv: dsr.creteBuffer(gl, program, uvs, 'uv'),
+                    index: dsr.createIndex(gl, indices)
+                },
+                matrix: {
+                    modelMatrix: modelMatrix,
+                    mvMatrix: dsr.mat4.create(),
+                    mvpMatrix: dsr.mat4.create()
+                },
+                uniforms : dsr.getUniformLocations(gl, program, ['uMVPMatrix', 'uTexture']),
+                font: fontTexture
+            };
+
+            var webglTextLayoutRenderging = new dsr.TextRendering(gl, textLayout, font.image);
+            var { vertices, uvs, indices } = webglTextLayoutRenderging; 
+
+            // console.log(vertices, uvs, indices);
+            textMesh = {
+                program: program,
+                buffers: {
+                    position: dsr.creteBuffer(gl, program, vertices, 'position'),
+                    uv: dsr.creteBuffer(gl, program, uvs, 'uv'),
+                    index: dsr.createIndex(gl, indices)
+                },
+                matrix: {
+                    modelMatrix: dsr.mat4.create(),
+                    mvMatrix: dsr.mat4.create(),
+                    mvpMatrix: dsr.mat4.create()
+                },
+                uniforms : webglTextMesh.uniforms,
+                font: fontTexture
+            }
+        }
+
+        function render(){
+            renderGl()
+            renderCanvas();
+        }
+
+        function renderCanvas(){
+            // const glyphs = textCanvas.glyphs;
+            console.log(textCanvas.glyphs);
+
+            let padding = 20;
+            context.clearRect(0, 0, viewportWidth, viewportHeight);
+
+            context.save();
+            context.translate(padding, padding + textCanvas.height)
+            
+            textCanvas.glyphs.forEach(glyph => {
+                let bitmap = glyph.data
+                let [ xx, yy ] = glyph.position;
+                
+                context.drawImage(font.image, 
+                                    bitmap.x, bitmap.y, 
+                                    bitmap.width, bitmap.height,
+                                    xx + bitmap.xoffset, yy + bitmap.yoffset, 
+                                    bitmap.width, bitmap.height)                
+            });
+
+            context.restore();
+
+            context.save();
+            context.translate(viewportWidth/2 - textLayout.width/2, viewportHeight/2 + textLayout.height/2);
+            textLayout.glyphs.forEach(glyph => {
+                let bitmap = glyph.data
+                let [ xx, yy ] = glyph.position;
+                
+                context.drawImage(font.image, 
+                                    bitmap.x, bitmap.y, 
+                                    bitmap.width, bitmap.height,
+                                    xx + bitmap.xoffset, yy + bitmap.yoffset, 
+                                    bitmap.width, bitmap.height)  
+            }); 
+            
+            context.restore();
+
+
+        }
+
+        function renderGl(){
+            dsr.mat4.multiply(webglTextMesh.matrix.mvMatrix, camera.viewMatrix, webglTextMesh.matrix.modelMatrix);
+            dsr.mat4.multiply(webglTextMesh.matrix.mvpMatrix, camera.projectionMatrix, webglTextMesh.matrix.mvMatrix);
+            
+            dsr.mat4.multiply(textMesh.matrix.mvMatrix, camera.viewMatrix, textMesh.matrix.modelMatrix);
+            dsr.mat4.multiply(textMesh.matrix.mvpMatrix, camera.projectionMatrix, textMesh.matrix.mvMatrix);
+
+            gl.enable(gl.DEPTH_TEST);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            gl.enable(gl.BLEND);
+
+            gl.clearColor(0, 0, 0, 1);
+            
+            gl.enable(gl.CULL_FACE);
+            gl.cullFace(gl.BACK);
+
+            gl.enable(gl.DEPTH_TEST);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            gl.viewport(0, 0, viewportWidth, viewportHeight);
+
+            {
+                let {program, buffers, matrix, uniforms, font} = webglTextMesh;
+                gl.useProgram(program);
+
+                dsr.bindBuffer(gl, buffers.position.buffer, buffers.position.location, 2); 
+                dsr.bindBuffer(gl, buffers.uv.buffer, buffers.uv.location, 2);
+
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.index.buffer);
+
+                gl.uniformMatrix4fv(uniforms.uMVPMatrix, false, matrix.mvpMatrix);
+                dsr.activeTexture(gl, font, uniforms.uTexture, 0);
+                
+                gl.drawElements(gl.TRIANGLES, buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
+            }
+
+            {
+                let {program, buffers, matrix, uniforms, font} = textMesh;
+                gl.useProgram(program);
+
+                dsr.bindBuffer(gl, buffers.position.buffer, buffers.position.location, 2); 
+                dsr.bindBuffer(gl, buffers.uv.buffer, buffers.uv.location, 2);
+
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.index.buffer);
+
+                gl.uniformMatrix4fv(uniforms.uMVPMatrix, false, matrix.mvpMatrix);
+                dsr.activeTexture(gl, font, uniforms.uTexture, 0);
+                
+                gl.drawElements(gl.TRIANGLES, buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
+            }
         }
 
         function tick(){
             stats.update();
 
-            dsr.mat4.multiply(sphere.matrix.mvMatrix, camera.viewMatrix, sphere.matrix.modelMatrix);
-            dsr.mat4.multiply(sphere.matrix.mvpMatrix, camera.projectionMatrix, sphere.matrix.mvMatrix);
         
-            gl.clearColor(0, 0, 0, 1);
-            gl.enable(gl.DEPTH_TEST);
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-            gl.viewport(0, 0, viewportWidth, viewportHeight);
 
             gl.useProgram(sphere.progoram);
 
