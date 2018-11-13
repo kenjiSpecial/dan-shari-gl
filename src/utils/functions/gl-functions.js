@@ -105,7 +105,7 @@ export function createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc) {
  *
  * @returns {object} uniformLocation
  */
-export function creteBuffer(gl, program, data, str) {
+export function createBuffer(gl, program, data, str) {
 	const buffer = gl.createBuffer();
 	const location = gl.getAttribLocation(program, str);
 

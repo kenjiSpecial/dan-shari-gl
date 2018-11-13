@@ -100,8 +100,8 @@
             var { vertices, normals, indices } = dsr.getSphere(5, 32, 32);
             sphere.progoram = dsr.createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc);
             sphere.buffers = {
-                position: dsr.creteBuffer(gl, sphere.progoram, new Float32Array(vertices), 'position'),
-                normal: dsr.creteBuffer(gl, sphere.progoram, new Float32Array(normals), 'normal'),
+                position: dsr.createBuffer(gl, sphere.progoram, new Float32Array(vertices), 'position'),
+                normal: dsr.createBuffer(gl, sphere.progoram, new Float32Array(normals), 'normal'),
                 index: dsr.createIndex(gl, new Uint16Array(indices))
             };
             sphere.matrix = {
