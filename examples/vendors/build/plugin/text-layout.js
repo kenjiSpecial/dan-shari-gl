@@ -57,8 +57,6 @@
   		var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
   		classCallCheck(this, TextLayout);
 
-  		console.log(data);
-  		console.log(text);
   		this.fontData = data;
   		this.options = options;
   		this.options.fontData = this.fontData;
@@ -147,7 +145,6 @@
   			});
 
   			this.linesTotal = lines.length;
-  			console.log(glyphs);
   			this.glyphs = glyphs;
   		}
   	}, {
@@ -174,10 +171,8 @@
   			//try to get space glyph
   			//then fall back to the 'm' or 'w' glyphs
   			//then fall back to the first glyph available
-  			console.log(fontData.chars[0]);
   			var space = getGlyphById(fontData, SPACE_ID) || this.getMGlyph(fontData) || fontData.chars[0];
 
-  			console.log(space);
   			var tabWidth = this.options.tabSize * space.xadvance;
   			this.fallbackSpaceGlyph = space;
   			this.fallbackTabGlyph = this.extendObject(space, {
@@ -219,7 +214,6 @@
   	}, {
   		key: 'getMGlyph',
   		value: function getMGlyph(fontData) {
-  			console.log('getMGlyph');
   			for (var i = 0; i < M_WIDTHS.length; i++) {
   				var id = M_WIDTHS[i].charCodeAt(0);
   				var idx = this.findChar(fontData.chars, id);
