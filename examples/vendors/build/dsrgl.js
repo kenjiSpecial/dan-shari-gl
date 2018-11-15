@@ -1466,7 +1466,7 @@
 		return OrthoCamera;
 	}(Camera);
 
-	console.log('[danshariGL] version: 0.2.3, %o', 'https://github.com/kenjiSpecial/tubugl');
+	console.log('[danshariGL] version: 0.2.5, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
 
 	exports.getUniformLocations = getUniformLocations;
 	exports.addLineNumbers = addLineNumbers;

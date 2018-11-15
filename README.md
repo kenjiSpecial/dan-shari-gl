@@ -1,3 +1,2 @@
-# Dan-Sha-Ri GL(断シャリGL aka dsrgl.js)
+# Dan-Sha-Ri GL(断捨離-GL aka dsrgl.js)
 
-![](./examples/assets/images/shari.jpg)

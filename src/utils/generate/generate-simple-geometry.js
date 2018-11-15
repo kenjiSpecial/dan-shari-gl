@@ -122,7 +122,7 @@ export function createSimpleBox() {
 		positions: positions,
 		normals: normals,
 		uvs: uvs,
-		indices
+		indices: indices
 	};
 }
 
