@@ -1,476 +1,162 @@
 // segment is one
-export function createSimpleBox(width, height, depth) {
-	let x = -width / 2;
-	let y = -height / 2;
-	let z = -depth / 2;
+export function createSimpleBox() {
+	const positions = [
+		// Front face
+		-1.0, -1.0,  1.0,
+		1.0, -1.0,  1.0,
+		1.0,  1.0,  1.0,
+		-1.0,  1.0,  1.0,
+		
+		// Back face
+		-1.0, -1.0, -1.0,
+		-1.0,  1.0, -1.0,
+		1.0,  1.0, -1.0,
+		1.0, -1.0, -1.0,
+		
+		// Top face
+		-1.0,  1.0, -1.0,
+		-1.0,  1.0,  1.0,
+		1.0,  1.0,  1.0,
+		1.0,  1.0, -1.0,
+		
+		// Bottom face
+		-1.0, -1.0, -1.0,
+		1.0, -1.0, -1.0,
+		1.0, -1.0,  1.0,
+		-1.0, -1.0,  1.0,
+		
+		// Right face
+		1.0, -1.0, -1.0,
+		1.0,  1.0, -1.0,
+		1.0,  1.0,  1.0,
+		1.0, -1.0,  1.0,
+		
+		// Left face
+		-1.0, -1.0, -1.0,
+		-1.0, -1.0,  1.0,
+		-1.0,  1.0,  1.0,
+		-1.0,  1.0, -1.0,
+	];
 
-	let fbl = {
-		x: x,
-		y: y,
-		z: z + depth
-	};
-	let fbr = {
-		x: x + width,
-		y: y,
-		z: z + depth
-	};
-	let ftl = {
-		x: x,
-		y: y + height,
-		z: z + depth
-	};
-	let ftr = {
-		x: x + width,
-		y: y + height,
-		z: z + depth
-	};
-	let bbl = {
-		x: x,
-		y: y,
-		z: z
-	};
-	let bbr = {
-		x: x + width,
-		y: y,
-		z: z
-	};
-	let btl = {
-		x: x,
-		y: y + height,
-		z: z
-	};
-	let btr = {
-		x: x + width,
-		y: y + height,
-		z: z
-	};
+	const indices = [
+		0,  1,  2,      0,  2,  3,    // front
+		4,  5,  6,      4,  6,  7,    // back
+		8,  9,  10,     8,  10, 11,   // top
+		12, 13, 14,     12, 14, 15,   // bottom
+		16, 17, 18,     16, 18, 19,   // right
+		20, 21, 22,     20, 22, 23,   // left
+	];
 
-	let positions = new Float32Array([
-		//front
-		fbl.x,
-		fbl.y,
-		fbl.z,
-		fbr.x,
-		fbr.y,
-		fbr.z,
-		ftl.x,
-		ftl.y,
-		ftl.z,
-		ftl.x,
-		ftl.y,
-		ftl.z,
-		fbr.x,
-		fbr.y,
-		fbr.z,
-		ftr.x,
-		ftr.y,
-		ftr.z,
+	const uvs = [
+		// Front
+		0.0,  0.0,
+		1.0,  0.0,
+		1.0,  1.0,
+		0.0,  1.0,
+		// Back
+		0.0,  0.0,
+		1.0,  0.0,
+		1.0,  1.0,
+		0.0,  1.0,
+		// Top
+		0.0,  0.0,
+		1.0,  0.0,
+		1.0,  1.0,
+		0.0,  1.0,
+		// Bottom
+		0.0,  0.0,
+		1.0,  0.0,
+		1.0,  1.0,
+		0.0,  1.0,
+		// Right
+		0.0,  0.0,
+		1.0,  0.0,
+		1.0,  1.0,
+		0.0,  1.0,
+		// Left
+		0.0,  0.0,
+		1.0,  0.0,
+		1.0,  1.0,
+		0.0,  1.0,
+	];
 
-		//right
-		fbr.x,
-		fbr.y,
-		fbr.z,
-		bbr.x,
-		bbr.y,
-		bbr.z,
-		ftr.x,
-		ftr.y,
-		ftr.z,
-		ftr.x,
-		ftr.y,
-		ftr.z,
-		bbr.x,
-		bbr.y,
-		bbr.z,
-		btr.x,
-		btr.y,
-		btr.z,
-
-		//back
-		fbr.x,
-		bbr.y,
-		bbr.z,
-		bbl.x,
-		bbl.y,
-		bbl.z,
-		btr.x,
-		btr.y,
-		btr.z,
-		btr.x,
-		btr.y,
-		btr.z,
-		bbl.x,
-		bbl.y,
-		bbl.z,
-		btl.x,
-		btl.y,
-		btl.z,
-
-		//left
-		bbl.x,
-		bbl.y,
-		bbl.z,
-		fbl.x,
-		fbl.y,
-		fbl.z,
-		btl.x,
-		btl.y,
-		btl.z,
-		btl.x,
-		btl.y,
-		btl.z,
-		fbl.x,
-		fbl.y,
-		fbl.z,
-		ftl.x,
-		ftl.y,
-		ftl.z,
-
-		//top
-		ftl.x,
-		ftl.y,
-		ftl.z,
-		ftr.x,
-		ftr.y,
-		ftr.z,
-		btl.x,
-		btl.y,
-		btl.z,
-		btl.x,
-		btl.y,
-		btl.z,
-		ftr.x,
-		ftr.y,
-		ftr.z,
-		btr.x,
-		btr.y,
-		btr.z,
-
-		//bottom
-		bbl.x,
-		bbl.y,
-		bbl.z,
-		bbr.x,
-		bbr.y,
-		bbr.z,
-		fbl.x,
-		fbl.y,
-		fbl.z,
-		fbl.x,
-		fbl.y,
-		fbl.z,
-		bbr.x,
-		bbr.y,
-		bbr.z,
-		fbr.x,
-		fbr.y,
-		fbr.z
-	]);
-
-	let layoutPosition = new Float32Array([
-		// front
-		1,
-		2,
-		//
-		2,
-		2,
-		//
-		1,
-		1,
-		//
-		//
-		1,
-		1,
-		//
-		2,
-		2,
-		//
-		2,
-		1,
-		//
-		// right
-		//
-		1 + 1,
-		2,
-		//
-		2 + 1,
-		2,
-		//
-		1 + 1,
-		1,
-		//
-		//
-		1 + 1,
-		1,
-		//
-		2 + 1,
-		2,
-		//
-		2 + 1,
-		1,
-		//
-		// back
-		//
-		1 + 2,
-		2,
-		//
-		2 + 2,
-		2,
-		//
-		1 + 2,
-		1,
-		//
-		//
-		1 + 2,
-		1,
-		//
-		2 + 2,
-		2,
-		//
-		2 + 2,
-		1,
-		//
-		//
-		// back
-		//
-		1 - 1,
-		2,
-		//
-		2 - 1,
-		2,
-		//
-		1 - 1,
-		1,
-		//
-		//
-		1 - 1,
-		1,
-		//
-		2 - 1,
-		2,
-		//
-		2 - 1,
-		1,
-		//
-		// top
-		//
-		1,
-		2 - 1,
-		//
-		2,
-		2 - 1,
-		//
-		1,
-		1 - 1,
-		//
-		//
-		1,
-		1 - 1,
-		//
-		2,
-		2 - 1,
-		//
-		2,
-		1 - 1,
-		//
-		// bottom
-		//
-		1,
-		2 + 1,
-		//
-		2,
-		2 + 1,
-		//
-		1,
-		1 + 1,
-		//
-		//
-		1,
-		1 + 1,
-		//
-		2,
-		2 + 1,
-		//
-		2,
-		1 + 1
-		//
-	]);
-
-	let uvs = new Float32Array([
-		//front
-		0,
-		0,
-		1,
-		0,
-		0,
-		1,
-		0,
-		1,
-		1,
-		0,
-		1,
-		1,
-
-		//right
-		0,
-		0,
-		1,
-		0,
-		0,
-		1,
-		0,
-		1,
-		1,
-		0,
-		1,
-		1,
-
-		//back
-		0,
-		0,
-		1,
-		0,
-		0,
-		1,
-		0,
-		1,
-		1,
-		0,
-		1,
-		1,
-
-		//left
-		0,
-		0,
-		1,
-		0,
-		0,
-		1,
-		0,
-		1,
-		1,
-		0,
-		1,
-		1,
-
-		//top
-		0,
-		0,
-		1,
-		0,
-		0,
-		1,
-		0,
-		1,
-		1,
-		0,
-		1,
-		1,
-
-		//bottom
-		0,
-		0,
-		1,
-		0,
-		0,
-		1,
-		0,
-		1,
-		1,
-		0,
-		1,
-		1
-	]);
-
-	let normals = new Float32Array(positions.length);
-	let i, count;
-	let ni;
-
-	for (i = 0, count = positions.length / 3; i < count; i++) {
-		ni = i * 3;
-
-		normals[ni] = parseInt(i / 6, 10) === 1 ? 1 : parseInt(i / 6, 10) === 3 ? -1 : 0;
-
-		normals[ni + 1] = parseInt(i / 6, 10) === 4 ? 1 : parseInt(i / 6, 10) === 5 ? -1 : 0;
-
-		normals[ni + 2] = parseInt(i / 6, 10) === 0 ? 1 : parseInt(i / 6, 10) === 2 ? -1 : 0;
-	}
+	const normals = [
+		// Front
+		0.0,  0.0,  1.0,
+		0.0,  0.0,  1.0,
+		0.0,  0.0,  1.0,
+		0.0,  0.0,  1.0,
+	
+		// Back
+		0.0,  0.0, -1.0,
+		0.0,  0.0, -1.0,
+		0.0,  0.0, -1.0,
+		0.0,  0.0, -1.0,
+	
+		// Top
+		0.0,  1.0,  0.0,
+		0.0,  1.0,  0.0,
+		0.0,  1.0,  0.0,
+		0.0,  1.0,  0.0,
+	
+		// Bottom
+		0.0, -1.0,  0.0,
+		0.0, -1.0,  0.0,
+		0.0, -1.0,  0.0,
+		0.0, -1.0,  0.0,
+	
+		// Right
+		1.0,  0.0,  0.0,
+		1.0,  0.0,  0.0,
+		1.0,  0.0,  0.0,
+		1.0,  0.0,  0.0,
+	
+		// Left
+		-1.0,  0.0,  0.0,
+		-1.0,  0.0,  0.0,
+		-1.0,  0.0,  0.0,
+		-1.0,  0.0,  0.0
+	];
 
 	return {
 		positions: positions,
 		normals: normals,
 		uvs: uvs,
-		layoutPosition: layoutPosition
+		indices
 	};
 }
 
-export function createSimplePlane(width, height) {
-	let x = -width / 2;
-	let y = -height / 2;
+export function createSimplePlane() {
+	const positions = [
+		-1.0, -1.0,  0.0,
+		1.0, -1.0,  0.0,
+		1.0,  1.0,  0.0,
+		-1.0,  1.0,  0.0
+	];
 
-	let bl = {
-		x: x,
-		y: y,
-		z: 0
-	};
-	let br = {
-		x: x + width,
-		y: y,
-		z: 0
-	};
-	let tl = {
-		x: x,
-		y: y + height,
-		z: 0
-	};
-	let tr = {
-		x: x + width,
-		y: y + height,
-		z: 0
-	};
+	const indices = [
+		0,  1,  2,      0,  2,  3,    // front
+	];
 
-	let positions = new Float32Array([
-		bl.x,
-		bl.y,
-		bl.z,
-		br.x,
-		br.y,
-		br.z,
-		tl.x,
-		tl.y,
-		tl.z,
-		tl.x,
-		tl.y,
-		tl.z,
-		br.x,
-		br.y,
-		br.z,
-		tr.x,
-		tr.y,
-		tr.z
-	]);
+	const uvs = [
+		0.0,  0.0,
+		1.0,  0.0,
+		1.0,  1.0,
+		0.0,  1.0, 
+	]
 
-	let uvs = new Float32Array([
-		//front
-		0,
-		0,
-		1,
-		0,
-		0,
-		1,
-		0,
-		1,
-		1,
-		0,
-		1,
-		1
-	]);
-
-	let normals = new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]);
+	const normals = [
+		// Front
+		0.0,  0.0,  1.0,
+		0.0,  0.0,  1.0,
+		0.0,  0.0,  1.0,
+		0.0,  0.0,  1.0
+	];
 
 	return {
 		positions: positions,
 		normals: normals,
-		uvs: uvs
+		uvs: uvs,
+		indices: indices
 	};
 }
