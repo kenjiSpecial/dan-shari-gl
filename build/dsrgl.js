@@ -465,24 +465,25 @@
 
 	// segment is one
 	function createSimpleBox() {
+		var unit = 0.5;
 		var positions = [
 		// Front face
-		-1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0,
+		-unit, -unit, unit, unit, -unit, unit, unit, unit, unit, -unit, unit, unit,
 
 		// Back face
-		-1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0,
+		-unit, -unit, -unit, -unit, unit, -unit, unit, unit, -unit, unit, -unit, -unit,
 
 		// Top face
-		-1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0,
+		-unit, unit, -unit, -unit, unit, unit, unit, unit, unit, unit, unit, -unit,
 
 		// Bottom face
-		-1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0,
+		-unit, -unit, -unit, unit, -unit, -unit, unit, -unit, unit, -unit, -unit, unit,
 
 		// Right face
-		1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0,
+		unit, -unit, -unit, unit, unit, -unit, unit, unit, unit, unit, -unit, unit,
 
 		// Left face
-		-1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0];
+		-unit, -unit, -unit, -unit, -unit, unit, -unit, unit, unit, -unit, unit, -unit];
 
 		var indices = [0, 1, 2, 0, 2, 3, // front
 		4, 5, 6, 4, 6, 7, // back
@@ -533,7 +534,9 @@
 	}
 
 	function createSimplePlane() {
-		var positions = [-1.0, -1.0, 0.0, 1.0, -1.0, 0.0, 1.0, 1.0, 0.0, -1.0, 1.0, 0.0];
+		var unit = 0.5;
+
+		var positions = [-unit, -unit, 0.0, unit, -unit, 0.0, unit, unit, 0.0, -unit, unit, 0.0];
 
 		var indices = [0, 1, 2, 0, 2, 3];
 
@@ -1466,7 +1469,7 @@
 		return OrthoCamera;
 	}(Camera);
 
-	console.log('[danshariGL] version: 0.2.5, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
+	console.log('[danshariGL] version: 0.2.6, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
 
 	exports.getUniformLocations = getUniformLocations;
 	exports.addLineNumbers = addLineNumbers;

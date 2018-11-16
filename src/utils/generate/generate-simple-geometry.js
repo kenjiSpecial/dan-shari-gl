@@ -1,41 +1,42 @@
 // segment is one
 export function createSimpleBox() {
+	const unit = 0.5;
 	const positions = [
 		// Front face
-		-1.0, -1.0,  1.0,
-		1.0, -1.0,  1.0,
-		1.0,  1.0,  1.0,
-		-1.0,  1.0,  1.0,
+		-unit, -unit,  unit,
+		unit, -unit,  unit,
+		unit,  unit,  unit,
+		-unit,  unit,  unit,
 		
 		// Back face
-		-1.0, -1.0, -1.0,
-		-1.0,  1.0, -1.0,
-		1.0,  1.0, -1.0,
-		1.0, -1.0, -1.0,
+		-unit, -unit, -unit,
+		-unit,  unit, -unit,
+		unit,  unit, -unit,
+		unit, -unit, -unit,
 		
 		// Top face
-		-1.0,  1.0, -1.0,
-		-1.0,  1.0,  1.0,
-		1.0,  1.0,  1.0,
-		1.0,  1.0, -1.0,
+		-unit,  unit, -unit,
+		-unit,  unit,  unit,
+		unit,  unit,  unit,
+		unit,  unit, -unit,
 		
 		// Bottom face
-		-1.0, -1.0, -1.0,
-		1.0, -1.0, -1.0,
-		1.0, -1.0,  1.0,
-		-1.0, -1.0,  1.0,
+		-unit, -unit, -unit,
+		unit, -unit, -unit,
+		unit, -unit,  unit,
+		-unit, -unit,  unit,
 		
 		// Right face
-		1.0, -1.0, -1.0,
-		1.0,  1.0, -1.0,
-		1.0,  1.0,  1.0,
-		1.0, -1.0,  1.0,
+		unit, -unit, -unit,
+		unit,  unit, -unit,
+		unit,  unit,  unit,
+		unit, -unit,  unit,
 		
 		// Left face
-		-1.0, -1.0, -1.0,
-		-1.0, -1.0,  1.0,
-		-1.0,  1.0,  1.0,
-		-1.0,  1.0, -1.0,
+		-unit, -unit, -unit,
+		-unit, -unit,  unit,
+		-unit,  unit,  unit,
+		-unit,  unit, -unit,
 	];
 
 	const indices = [
@@ -127,11 +128,13 @@ export function createSimpleBox() {
 }
 
 export function createSimplePlane() {
+	const unit = 0.5;
+	
 	const positions = [
-		-1.0, -1.0,  0.0,
-		1.0, -1.0,  0.0,
-		1.0,  1.0,  0.0,
-		-1.0,  1.0,  0.0
+		-unit, -unit,  0.0,
+		unit, -unit,  0.0,
+		unit,  unit,  0.0,
+		-unit,  unit,  0.0
 	];
 
 	const indices = [
