@@ -81,13 +81,16 @@
         precision highp float;
 
         void main(){
-            gl_FragColor = vec4(0.6, 0.6, 0.8, 1.0);
+            gl_FragColor = vec4(0.8, 0.8, 0.8, 1.0);
         }
         `;
 
 
         var canvas = document.createElement('canvas');
-        var gl = canvas.getContext('webgl');
+        var gl = canvas.getContext('webgl', {antialias: false});
+        var ext = gl.getExtension('WEBGL_depth_texture');
+        console.log(ext);
+        
         document.body.appendChild(canvas);
         
         var viewportWidth, viewportHeight;
@@ -95,44 +98,149 @@
         var sphere = {};
         var materialBall = {};
         var plane = {};
+        var materialBallData;
+        var depthMapFBO;
+        var depthTexture, colorTexture;
+        var light = {}
 
         resize();
 
-        var camera = new dsr.PerspectiveCamera(window.innerWidth, window.innerHeight, 45, 0.1, 1000); 
-        camera.updatePosition(0, 0, 15);
-        camera.updateLookAtPosition(0, 0, 0);
-        camera.updateViewMatrix();
+        gl.clearColor(0, 0, 0, 1);
+        gl.enable(gl.DEPTH_TEST);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        var jsonUrl = './assets/material-ball.json';
+
+        dsr.getAjaxJson(jsonUrl).then((data)=>{
+            materialBallData = data;
+            // console.log(data);
+            init();
+            
+        })
+
+        var camera, cameraController;
+
+        function init(){
+
+            camera = new dsr.PerspectiveCamera(window.innerWidth, window.innerHeight, 45, 0.1, 1000); 
+            camera.updatePosition(0, 0, 20);
+            camera.updateLookAtPosition(0, 0, 0);
+            camera.updateViewMatrix();
 
 
-        var cameraController = new dsr.CameraController(camera);
-        
-        // create sphere
-        {
-            var { vertices, normals, indices } = dsr.getSphere(5, 32, 32);
-            sphere.progoram = dsr.createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc);
-            sphere.buffers = {
-                position: dsr.createBuffer(gl, sphere.progoram, new Float32Array(vertices), 'position'),
-                normal: dsr.createBuffer(gl, sphere.progoram, new Float32Array(normals), 'normal'),
-                index: dsr.createIndex(gl, new Uint16Array(indices))
-            };
-            sphere.matrix = {
-                modelMatrix: dsr.mat4.create(),
-                mvMatrix: dsr.mat4.create(),
-                mvpMatrix: dsr.mat4.create()
-            };
-            sphere.uniforms = dsr.getUniformLocations(gl, sphere.progoram, ['uMVPMatrix']);
+            cameraController = new dsr.CameraController(camera);
+            
+            // create sphere
+            {
+                var { vertices, normals, indices } = dsr.getSphere(3, 32, 32);
+                sphere.program = dsr.createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc);
+                sphere.buffers = {
+                    position: dsr.createBuffer(gl, sphere.program, new Float32Array(vertices), 'position'),
+                    normal: dsr.createBuffer(gl, sphere.program, new Float32Array(normals), 'normal'),
+                    index: dsr.createIndex(gl, new Uint16Array(indices))
+                };
+                let quat = dsr.quat.create();
+                let mat = dsr.mat4.create();
+                dsr.mat4.fromRotationTranslationScale(mat, quat, [5, 0, 0], [1, 1, 1]);
+                sphere.matrix = {
+                    modelMatrix: mat,
+                    mvMatrix: dsr.mat4.create(),
+                    mvpMatrix: dsr.mat4.create()
+                };
+                sphere.uniforms = dsr.getUniformLocations(gl, sphere.program, ['uMVPMatrix']);
+            }
+
+            // create plane
+            {
+                var {vertices, normals} = dsr.createSimplePlane(100, 100);
+                
+                const program = dsr.createPrgoram(gl, vertexShaderSrc, fragment2ShaderSrc);
+                plane.program = program;
+                plane.buffers = {
+                    position: dsr.createBuffer(gl, program, new Float32Array(vertices), 'position'),
+                    normal: dsr.createBuffer(gl, program, new Float32Array(normals), 'normal'),
+                }
+                let quat = dsr.quat.create();
+                dsr.quat.rotateX(quat, quat, Math.PI/2);
+                let mat = dsr.mat4.create();
+                dsr.mat4.fromRotationTranslationScale(mat, quat, [0, -3, 0], [1, 1, 1]);
+
+                plane.matrix = {
+                    modelMatrix: mat,
+                    mvMatrix: dsr.mat4.create(),
+                    mvpMatrix: dsr.mat4.create()
+                };
+                plane.uniforms = dsr.getUniformLocations(gl, program, ['uMVPMatrix']);
+            }
+
+            // create material ball
+            {
+                var normal = materialBallData.data.attributes.normal.array;
+                var position = materialBallData.data.attributes.position.array;
+                var indices = materialBallData.data.index.array;
+                
+                const program = dsr.createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc);
+                materialBall.program = program;
+                materialBall.buffers = {
+                    position: dsr.createBuffer(gl, program, new Float32Array(position), 'position'),
+                    normal: dsr.createBuffer(gl, program, new Float32Array(normal), 'normal'),
+                    index: dsr.createIndex(gl, new Uint16Array(indices))
+                }
+                let quat = dsr.quat.create();
+                let mat = dsr.mat4.create();
+                dsr.mat4.fromRotationTranslationScale(mat, quat, [-5, 0.9, 0], [0.5, 0.5, 0.5]);
+                materialBall.matrix = {
+                    modelMatrix: mat,
+                    mvMatrix: dsr.mat4.create(),
+                    mvpMatrix: dsr.mat4.create()
+                };
+                materialBall.uniforms = dsr.getUniformLocations(gl, program, ['uMVPMatrix']);
+            }
+
+            const shadowWidth = 1024;
+            const shadowHeight = 1024;
+
+            depthMapFBO = gl.createFramebuffer();
+            gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
+
+            // create depth framebuffer            
+            // https://github.com/WebGLSamples/WebGL2Samples/blob/master/samples/fbo_rtt_depth_texture.html#L184
+    
+            depthTexture  = dsr.createEmptyTexture(
+                gl, shadowWidth, shadowHeight, 
+                gl.DEPTH_COMPONENT, 
+                gl.NEAREST,
+                gl.NEAREST, 
+                gl.CLAMP_TO_EDGE,
+	            gl.CLAMP_TO_EDGE,
+                gl.UNSIGNED_SHORT
+            );
+
+            // Create the depth texture used as our shadow map
+    
+            // gl.framebufferTexture2D(
+            //     gl.FRAMEBUFFER, 
+            //     gl.DEPTH_ATTACHMENT,
+            //     gl.TEXTURE_2D, 
+            //     depthTexture, 
+            // 0);
+            
+            // try {
+            //     var success = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+            //     if (!success) 'frambuffer incmplete';
+            // } catch (error) {
+            //     console.error(error);
+            //     return 0;
+            // }
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
+
+
+            tick();
         }
 
-        // create plane
-        {
-            var {vertices, indices} = dsr.createSimplePlane(25, 25);
-            plane.progoram = dsr.createPrgoram(gl, vertexShaderSrc, fragment2ShaderSrc);
-            plane.buffers = {}
-
-        }
-
-
-
+        //
 
         /**
          * set debug tool(dat.gui)
@@ -155,7 +263,7 @@
         let stats = new Stats();
 		document.body.appendChild(stats.dom);
 
-        tick();
+        // 
 
         function resize(){
             viewportWidth = window.innerWidth;
@@ -169,8 +277,6 @@
         function tick(){
             stats.update();
 
-            dsr.mat4.multiply(sphere.matrix.mvMatrix, camera.viewMatrix, sphere.matrix.modelMatrix);
-            dsr.mat4.multiply(sphere.matrix.mvpMatrix, camera.projectionMatrix, sphere.matrix.mvMatrix);
         
             gl.clearColor(0, 0, 0, 1);
             gl.enable(gl.DEPTH_TEST);
@@ -178,16 +284,58 @@
 
             gl.viewport(0, 0, viewportWidth, viewportHeight);
 
-            gl.useProgram(sphere.progoram);
+            renderMesh();
+        }
 
-            dsr.bindBuffer(gl, sphere.buffers.position.buffer, sphere.buffers.position.location, 3); 
-            dsr.bindBuffer(gl, sphere.buffers.normal.buffer, sphere.buffers.normal.location, 3);
+        function renderMesh(){
+            if(sphere){
+                dsr.mat4.multiply(sphere.matrix.mvMatrix, camera.viewMatrix, sphere.matrix.modelMatrix);
+                dsr.mat4.multiply(sphere.matrix.mvpMatrix, camera.projectionMatrix, sphere.matrix.mvMatrix);
 
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphere.buffers.index.buffer);
+                gl.useProgram(sphere.program);
 
-            gl.uniformMatrix4fv(sphere.uniforms.uMVPMatrix, false, sphere.matrix.mvpMatrix);
+                dsr.bindBuffer(gl, sphere.buffers.position.buffer, sphere.buffers.position.location, 3); 
+                dsr.bindBuffer(gl, sphere.buffers.normal.buffer, sphere.buffers.normal.location, 3);
+
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphere.buffers.index.buffer);
+
+                gl.uniformMatrix4fv(sphere.uniforms.uMVPMatrix, false, sphere.matrix.mvpMatrix);
+                
+                gl.drawElements(gl.TRIANGLES, sphere.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
+            }
             
-            gl.drawElements(gl.TRIANGLES, sphere.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
+            if(plane){
+                dsr.mat4.multiply(plane.matrix.mvMatrix, camera.viewMatrix, plane.matrix.modelMatrix);
+                dsr.mat4.multiply(plane.matrix.mvpMatrix, camera.projectionMatrix, plane.matrix.mvMatrix);
+
+                gl.useProgram(plane.program);
+
+                dsr.bindBuffer(gl, plane.buffers.position.buffer, plane.buffers.position.location, 3); 
+                dsr.bindBuffer(gl, plane.buffers.normal.buffer, plane.buffers.normal.location, 3);
+
+                // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, plane.buffers.index.buffer);
+
+                gl.uniformMatrix4fv(plane.uniforms.uMVPMatrix, false, plane.matrix.mvpMatrix);
+                
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+            }
+
+
+            if(materialBall){
+                dsr.mat4.multiply(materialBall.matrix.mvMatrix, camera.viewMatrix, materialBall.matrix.modelMatrix);
+                dsr.mat4.multiply(materialBall.matrix.mvpMatrix, camera.projectionMatrix, materialBall.matrix.mvMatrix);
+
+                gl.useProgram(materialBall.program);
+
+                dsr.bindBuffer(gl, materialBall.buffers.position.buffer, materialBall.buffers.position.location, 3); 
+                dsr.bindBuffer(gl, materialBall.buffers.normal.buffer, materialBall.buffers.normal.location, 3);
+
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, materialBall.buffers.index.buffer);
+
+                gl.uniformMatrix4fv(materialBall.uniforms.uMVPMatrix, false, materialBall.matrix.mvpMatrix);
+                
+                gl.drawElements(gl.TRIANGLES, materialBall.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
+            }
                     
             loopId = requestAnimationFrame(tick);
         }
