@@ -1,5 +1,6 @@
 import TweenLite from 'gsap/TweenLite';
-import { vec3, math } from 'dsr';
+import * as dsrGl from 'dan-shari-gl';
+const {vec3, math} = dsrGl ? dsrGl : window.dsr;
 
 class DampedAction {
 	constructor() {

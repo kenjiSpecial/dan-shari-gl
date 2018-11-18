@@ -9,11 +9,6 @@
 	var RGB = 0x1907;
 	var CLAMP_TO_EDGE = 0x812f;
 
-	// Data types
-	// https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#Data_types
-
-	var UNSIGNED_BYTE = 0x1401;
-
 	/**
 	 * get uniform locations
 	 *
@@ -180,19 +175,15 @@
 		var magFilter = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : LINEAR;
 		var wrapS = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : CLAMP_TO_EDGE;
 		var wrapT = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : CLAMP_TO_EDGE;
-		var type = arguments.length > 8 && arguments[8] !== undefined ? arguments[8] : UNSIGNED_BYTE;
 
 		var targetTexture = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, targetTexture);
 
-		// define size and format of level 0
-		var level = 0;
-		var border = 0;
-		// const type = gl.UNSIGNED_BYTE;
-		var data = null;
-
 		// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
-		gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureHeight, border, format, type, data);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, textureWidth, textureWidth, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, null);
+
+		console.log(format);
+		if (gl.DEPTH_COMPONENT === format) console.log('format is DEPTH_COMPONENT');
 
 		// set the filtering so we don't need mips
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
@@ -476,244 +467,93 @@
 	}
 
 	// segment is one
-	function createSimpleBox(width, height, depth) {
-		var x = -width / 2;
-		var y = -height / 2;
-		var z = -depth / 2;
+	function createSimpleBox() {
+		var unit = 0.5;
+		var positions = [
+		// Front face
+		-unit, -unit, unit, unit, -unit, unit, unit, unit, unit, -unit, unit, unit,
 
-		var fbl = {
-			x: x,
-			y: y,
-			z: z + depth
-		};
-		var fbr = {
-			x: x + width,
-			y: y,
-			z: z + depth
-		};
-		var ftl = {
-			x: x,
-			y: y + height,
-			z: z + depth
-		};
-		var ftr = {
-			x: x + width,
-			y: y + height,
-			z: z + depth
-		};
-		var bbl = {
-			x: x,
-			y: y,
-			z: z
-		};
-		var bbr = {
-			x: x + width,
-			y: y,
-			z: z
-		};
-		var btl = {
-			x: x,
-			y: y + height,
-			z: z
-		};
-		var btr = {
-			x: x + width,
-			y: y + height,
-			z: z
-		};
+		// Back face
+		-unit, -unit, -unit, -unit, unit, -unit, unit, unit, -unit, unit, -unit, -unit,
 
-		var positions = new Float32Array([
-		//front
-		fbl.x, fbl.y, fbl.z, fbr.x, fbr.y, fbr.z, ftl.x, ftl.y, ftl.z, ftl.x, ftl.y, ftl.z, fbr.x, fbr.y, fbr.z, ftr.x, ftr.y, ftr.z,
+		// Top face
+		-unit, unit, -unit, -unit, unit, unit, unit, unit, unit, unit, unit, -unit,
 
-		//right
-		fbr.x, fbr.y, fbr.z, bbr.x, bbr.y, bbr.z, ftr.x, ftr.y, ftr.z, ftr.x, ftr.y, ftr.z, bbr.x, bbr.y, bbr.z, btr.x, btr.y, btr.z,
+		// Bottom face
+		-unit, -unit, -unit, unit, -unit, -unit, unit, -unit, unit, -unit, -unit, unit,
 
-		//back
-		fbr.x, bbr.y, bbr.z, bbl.x, bbl.y, bbl.z, btr.x, btr.y, btr.z, btr.x, btr.y, btr.z, bbl.x, bbl.y, bbl.z, btl.x, btl.y, btl.z,
+		// Right face
+		unit, -unit, -unit, unit, unit, -unit, unit, unit, unit, unit, -unit, unit,
 
-		//left
-		bbl.x, bbl.y, bbl.z, fbl.x, fbl.y, fbl.z, btl.x, btl.y, btl.z, btl.x, btl.y, btl.z, fbl.x, fbl.y, fbl.z, ftl.x, ftl.y, ftl.z,
+		// Left face
+		-unit, -unit, -unit, -unit, -unit, unit, -unit, unit, unit, -unit, unit, -unit];
 
-		//top
-		ftl.x, ftl.y, ftl.z, ftr.x, ftr.y, ftr.z, btl.x, btl.y, btl.z, btl.x, btl.y, btl.z, ftr.x, ftr.y, ftr.z, btr.x, btr.y, btr.z,
+		var indices = [0, 1, 2, 0, 2, 3, // front
+		4, 5, 6, 4, 6, 7, // back
+		8, 9, 10, 8, 10, 11, // top
+		12, 13, 14, 12, 14, 15, // bottom
+		16, 17, 18, 16, 18, 19, // right
+		20, 21, 22, 20, 22, 23];
 
-		//bottom
-		bbl.x, bbl.y, bbl.z, bbr.x, bbr.y, bbr.z, fbl.x, fbl.y, fbl.z, fbl.x, fbl.y, fbl.z, bbr.x, bbr.y, bbr.z, fbr.x, fbr.y, fbr.z]);
+		var uvs = [
+		// Front
+		0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+		// Back
+		0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+		// Top
+		0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+		// Bottom
+		0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+		// Right
+		0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+		// Left
+		0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0];
 
-		var layoutPosition = new Float32Array([
-		// front
-		1, 2,
-		//
-		2, 2,
-		//
-		1, 1,
-		//
-		//
-		1, 1,
-		//
-		2, 2,
-		//
-		2, 1,
-		//
-		// right
-		//
-		1 + 1, 2,
-		//
-		2 + 1, 2,
-		//
-		1 + 1, 1,
-		//
-		//
-		1 + 1, 1,
-		//
-		2 + 1, 2,
-		//
-		2 + 1, 1,
-		//
-		// back
-		//
-		1 + 2, 2,
-		//
-		2 + 2, 2,
-		//
-		1 + 2, 1,
-		//
-		//
-		1 + 2, 1,
-		//
-		2 + 2, 2,
-		//
-		2 + 2, 1,
-		//
-		//
-		// back
-		//
-		1 - 1, 2,
-		//
-		2 - 1, 2,
-		//
-		1 - 1, 1,
-		//
-		//
-		1 - 1, 1,
-		//
-		2 - 1, 2,
-		//
-		2 - 1, 1,
-		//
-		// top
-		//
-		1, 2 - 1,
-		//
-		2, 2 - 1,
-		//
-		1, 1 - 1,
-		//
-		//
-		1, 1 - 1,
-		//
-		2, 2 - 1,
-		//
-		2, 1 - 1,
-		//
-		// bottom
-		//
-		1, 2 + 1,
-		//
-		2, 2 + 1,
-		//
-		1, 1 + 1,
-		//
-		//
-		1, 1 + 1,
-		//
-		2, 2 + 1,
-		//
-		2, 1 + 1
-		//
-		]);
+		var normals = [
+		// Front
+		0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
 
-		var uvs = new Float32Array([
-		//front
-		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1,
+		// Back
+		0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0,
 
-		//right
-		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1,
+		// Top
+		0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
 
-		//back
-		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1,
+		// Bottom
+		0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0,
 
-		//left
-		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1,
+		// Right
+		1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
 
-		//top
-		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1,
-
-		//bottom
-		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1]);
-
-		var normals = new Float32Array(positions.length);
-		var i = void 0,
-		    count = void 0;
-		var ni = void 0;
-
-		for (i = 0, count = positions.length / 3; i < count; i++) {
-			ni = i * 3;
-
-			normals[ni] = parseInt(i / 6, 10) === 1 ? 1 : parseInt(i / 6, 10) === 3 ? -1 : 0;
-
-			normals[ni + 1] = parseInt(i / 6, 10) === 4 ? 1 : parseInt(i / 6, 10) === 5 ? -1 : 0;
-
-			normals[ni + 2] = parseInt(i / 6, 10) === 0 ? 1 : parseInt(i / 6, 10) === 2 ? -1 : 0;
-		}
+		// Left
+		-1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0];
 
 		return {
 			vertices: positions,
 			normals: normals,
 			uvs: uvs,
-			layoutPosition: layoutPosition
+			indices: indices
 		};
 	}
 
-	function createSimplePlane(width, height) {
-		var x = -width / 2;
-		var y = -height / 2;
+	function createSimplePlane() {
+		var unit = 0.5;
 
-		var bl = {
-			x: x,
-			y: y,
-			z: 0
-		};
-		var br = {
-			x: x + width,
-			y: y,
-			z: 0
-		};
-		var tl = {
-			x: x,
-			y: y + height,
-			z: 0
-		};
-		var tr = {
-			x: x + width,
-			y: y + height,
-			z: 0
-		};
+		var positions = [-unit, -unit, 0.0, unit, -unit, 0.0, unit, unit, 0.0, -unit, unit, 0.0];
 
-		var positions = new Float32Array([bl.x, bl.y, bl.z, br.x, br.y, br.z, tl.x, tl.y, tl.z, tl.x, tl.y, tl.z, br.x, br.y, br.z, tr.x, tr.y, tr.z]);
+		var indices = [0, 1, 2, 0, 2, 3];
 
-		var uvs = new Float32Array([
-		//front
-		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1]);
+		var uvs = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0];
 
-		var normals = new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]);
-		// let indices = [0, 1, 3];
+		var normals = [
+		// Front
+		0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0];
 
 		return {
 			vertices: positions,
 			normals: normals,
-			uvs: uvs
+			uvs: uvs,
+			indices: indices
 		};
 	}
 
@@ -1547,8 +1387,10 @@
 
 	var Camera = function () {
 		function Camera() {
+			var type = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'camera';
 			classCallCheck(this, Camera);
 
+			this.type = type;
 			this.position = { x: 0, y: 0, z: 0 };
 			this.lookAtPosition = { x: 0, y: 0, z: 0 };
 
@@ -1596,7 +1438,7 @@
 			var far = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 1000;
 			classCallCheck(this, PerspectiveCamera);
 
-			var _this = possibleConstructorReturn(this, (PerspectiveCamera.__proto__ || Object.getPrototypeOf(PerspectiveCamera)).call(this));
+			var _this = possibleConstructorReturn(this, (PerspectiveCamera.__proto__ || Object.getPrototypeOf(PerspectiveCamera)).call(this, 'perspective'));
 
 			_this.updatePerspective(width, height, fov, near, far);
 			return _this;
@@ -1617,7 +1459,7 @@
 		function OrthoCamera(left, right, bottom, top, near, far) {
 			classCallCheck(this, OrthoCamera);
 
-			var _this2 = possibleConstructorReturn(this, (OrthoCamera.__proto__ || Object.getPrototypeOf(OrthoCamera)).call(this));
+			var _this2 = possibleConstructorReturn(this, (OrthoCamera.__proto__ || Object.getPrototypeOf(OrthoCamera)).call(this, 'ortho'));
 
 			_this2.updatePerspective(left, right, bottom, top, near, far);
 			return _this2;
@@ -1632,7 +1474,7 @@
 		return OrthoCamera;
 	}(Camera);
 
-	console.log('[danshariGL] version: 0.2.2, %o', 'https://github.com/kenjiSpecial/tubugl');
+	console.log('[danshariGL] version: 0.2.6, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
 
 	exports.getUniformLocations = getUniformLocations;
 	exports.addLineNumbers = addLineNumbers;

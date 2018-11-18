@@ -1,4 +1,4 @@
-console.log('[danshariGL] version: DANSHARI_VERSOIN, %o', 'https://github.com/kenjiSpecial/tubugl');
+console.log('[danshariGL] version: DANSHARI_VERSOIN, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
 
 export * from './utils/functions/gl-functions';
 export * from './utils/functions/gl-textures';
