@@ -1,8 +1,8 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('gsap/TweenLite'), require('dsr')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'gsap/TweenLite', 'dsr'], factory) :
-  (factory((global.dsr = global.dsr || {}),global.TweenLite,global.dsr));
-}(this, (function (exports,TweenLite,dsr) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('gsap/TweenLite'), require('dan-shari-gl')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'gsap/TweenLite', 'dan-shari-gl'], factory) :
+  (factory((global.dsr = global.dsr || {}),global.TweenLite,global.dsrGl));
+}(this, (function (exports,TweenLite,dsrGl) { 'use strict';
 
   TweenLite = TweenLite && TweenLite.hasOwnProperty('default') ? TweenLite['default'] : TweenLite;
 
@@ -29,6 +29,10 @@
       return Constructor;
     };
   }();
+
+  var _ref = dsrGl ? dsrGl : window.dsr,
+      vec3 = _ref.vec3,
+      math = _ref.math;
 
   var DampedAction = function () {
   	function DampedAction() {
@@ -80,7 +84,7 @@
   		this.camera = camera;
   		this.domElement = domElement;
 
-  		this.target = dsr.vec3.create();
+  		this.target = vec3.create();
 
   		this.minDistance = 0;
   		this.maxDistance = Infinity;
@@ -118,8 +122,8 @@
   		};
 
   		// for reset
-  		this.originTarget = dsr.vec3.create();
-  		this.originPosition = dsr.vec3.create();
+  		this.originTarget = vec3.create();
+  		this.originPosition = vec3.create();
   		this.originPosition[0] = camera.position.x;
   		this.originPosition[1] = camera.position.x;
   		this.originPosition[2] = camera.position.x;
@@ -156,7 +160,7 @@
   		var dZ = this.camera.position.z;
   		var radius = Math.sqrt(dX * dX + dY * dY + dZ * dZ);
   		var theta = Math.atan2(this.camera.position.x, this.camera.position.z); // equator angle around y-up axis
-  		var phi = Math.acos(dsr.math.clamp(this.camera.position.y / radius, -1, 1)); // polar angle
+  		var phi = Math.acos(math.clamp(this.camera.position.y / radius, -1, 1)); // polar angle
   		this._spherical = {
   			radius: radius,
   			theta: theta,
@@ -406,7 +410,7 @@
   					dDis *= 1.5;
 
   					var targetRadius = this._spherical.radius - dDis;
-  					targetRadius = dsr.math.clamp(targetRadius, this.minDistance, this.maxDistance);
+  					targetRadius = math.clamp(targetRadius, this.minDistance, this.maxDistance);
   					this._zoomDistance = this._zoomDistanceEnd;
 
   					TweenLite.killTweensOf(this._spherical);
@@ -491,16 +495,16 @@
   	}, {
   		key: '_updatePanHandler',
   		value: function _updatePanHandler() {
-  			var xDir = dsr.vec3.create();
-  			var yDir = dsr.vec3.create();
-  			var zDir = dsr.vec3.create();
+  			var xDir = vec3.create();
+  			var yDir = vec3.create();
+  			var zDir = vec3.create();
   			zDir[0] = this.target[0] - this.camera.position.x;
   			zDir[1] = this.target[1] - this.camera.position.y;
   			zDir[2] = this.target[2] - this.camera.position.z;
-  			dsr.vec3.normalize(zDir, zDir);
+  			vec3.normalize(zDir, zDir);
 
-  			dsr.vec3.cross(xDir, zDir, [0, 1, 0]);
-  			dsr.vec3.cross(yDir, xDir, zDir);
+  			vec3.cross(xDir, zDir, [0, 1, 0]);
+  			vec3.cross(yDir, xDir, zDir);
 
   			var scale = Math.max(this._spherical.radius / 2000, 0.001);
 
