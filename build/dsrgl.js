@@ -7,6 +7,12 @@
 	var FLOAT = 0x1406;
 
 	var RGB = 0x1907;
+	var CLAMP_TO_EDGE = 0x812f;
+
+	// Data types
+	// https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#Data_types
+
+	var UNSIGNED_BYTE = 0x1401;
 
 	/**
 	 * get uniform locations
@@ -170,23 +176,29 @@
 	 */
 	function createEmptyTexture(gl, textureWidth, textureHeight) {
 		var format = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : RGB;
+		var minFilter = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : LINEAR;
+		var magFilter = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : LINEAR;
+		var wrapS = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : CLAMP_TO_EDGE;
+		var wrapT = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : CLAMP_TO_EDGE;
+		var type = arguments.length > 8 && arguments[8] !== undefined ? arguments[8] : UNSIGNED_BYTE;
 
 		var targetTexture = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, targetTexture);
 
-		{
-			// define size and format of level 0
-			var level = 0;
-			var border = 0;
-			var type = gl.UNSIGNED_BYTE;
-			var data = null;
-			gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureHeight, border, format, type, data);
+		// define size and format of level 0
+		var level = 0;
+		var border = 0;
+		// const type = gl.UNSIGNED_BYTE;
+		var data = null;
 
-			// set the filtering so we don't need mips
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-		}
+		// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
+		gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureHeight, border, format, type, data);
+
+		// set the filtering so we don't need mips
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapS);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapT);
 
 		return targetTexture;
 	}
@@ -463,6 +475,7 @@
 		};
 	}
 
+	// segment is one
 	function createSimpleBox(width, height, depth) {
 		var x = -width / 2;
 		var y = -height / 2;
@@ -656,7 +669,7 @@
 		}
 
 		return {
-			positions: positions,
+			vertices: positions,
 			normals: normals,
 			uvs: uvs,
 			layoutPosition: layoutPosition
@@ -695,15 +708,14 @@
 		0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1]);
 
 		var normals = new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]);
+		// let indices = [0, 1, 3];
 
 		return {
-			positions: positions,
+			vertices: positions,
 			normals: normals,
 			uvs: uvs
 		};
 	}
-
-	// segment is one
 
 	var EPSILON = 0.000001;
 	var ARRAY_TYPE = typeof Float32Array !== 'undefined' ? Float32Array : Array;

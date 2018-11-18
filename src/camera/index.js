@@ -1,7 +1,8 @@
 import { mat4 } from '../math';
 
 export class Camera {
-	constructor() {
+	constructor(type = 'camera') {
+		this.type = type;
 		this.position = { x: 0, y: 0, z: 0 };
 		this.lookAtPosition = { x: 0, y: 0, z: 0 };
 
@@ -33,7 +34,7 @@ export class Camera {
 
 export class PerspectiveCamera extends Camera {
 	constructor(width, height, fov = 45, near = 0.1, far = 1000) {
-		super();
+		super('perspective');
 		this.updatePerspective(width, height, fov, near, far);
 	}
 
@@ -44,7 +45,7 @@ export class PerspectiveCamera extends Camera {
 
 export class OrthoCamera extends Camera {
 	constructor(left, right, bottom, top, near, far) {
-		super();
+		super('ortho');
 		this.updatePerspective(left, right, bottom, top, near, far);
 	}
 

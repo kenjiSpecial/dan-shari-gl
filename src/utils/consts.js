@@ -11,3 +11,13 @@ export const NEAREST_MIPMAP_LINEAR = 0x2702;
 export const LINEAR_MIPMAP_LINEAR = 0x2703;
 export const CLAMP_TO_EDGE = 0x812f;
 export const REPEAT = 0x2901;
+
+// Framebuffers and renderbuffers
+// https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#Framebuffers_and_renderbuffers
+
+export const DEPTH_COMPONENT16 = 0x81a5;
+
+// Data types
+// https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#Data_types
+
+export const UNSIGNED_BYTE = 0x1401;

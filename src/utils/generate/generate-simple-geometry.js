@@ -397,7 +397,7 @@ export function createSimpleBox(width, height, depth) {
 	}
 
 	return {
-		positions: positions,
+		vertices: positions,
 		normals: normals,
 		uvs: uvs,
 		layoutPosition: layoutPosition
@@ -467,9 +467,10 @@ export function createSimplePlane(width, height) {
 	]);
 
 	let normals = new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]);
+	// let indices = [0, 1, 3];
 
 	return {
-		positions: positions,
+		vertices: positions,
 		normals: normals,
 		uvs: uvs
 	};

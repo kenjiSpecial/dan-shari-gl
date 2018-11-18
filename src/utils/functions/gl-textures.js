@@ -1,4 +1,4 @@
-import { RGB } from '../consts';
+import { RGB, UNSIGNED_BYTE, CLAMP_TO_EDGE } from '../consts';
 
 /**
  *
@@ -16,34 +16,39 @@ export function createEmptyTexture(
 	minFilter = LINEAR,
 	magFilter = LINEAR,
 	wrapS = CLAMP_TO_EDGE,
-	wrapT = CLAMP_TO_EDGE
+	wrapT = CLAMP_TO_EDGE,
+	type = UNSIGNED_BYTE
 ) {
 	const targetTexture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, targetTexture);
 
-	{
-		// define size and format of level 0
-		const level = 0;
-		const border = 0;
-		const type = gl.UNSIGNED_BYTE;
-		const data = null;
-		gl.texImage2D(
-			gl.TEXTURE_2D,
-			level,
-			format,
-			textureWidth,
-			textureHeight,
-			border,
-			format,
-			type,
-			data
-		);
+	// define size and format of level 0
+	const level = 0;
+	const border = 0;
+	// const type = gl.UNSIGNED_BYTE;
+	const data = null;
 
-		// set the filtering so we don't need mips
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	}
+	// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
+	gl.texImage2D(
+		gl.TEXTURE_2D,
+		0,
+		gl.DEPTH_COMPONENT,
+		textureWidth,
+		textureWidth,
+		0,
+		gl.DEPTH_COMPONENT,
+		gl.UNSIGNED_SHORT,
+		null
+	  );
+	  
+	console.log(format);
+	if(gl.DEPTH_COMPONENT === format) console.log('format is DEPTH_COMPONENT');
+
+	// set the filtering so we don't need mips
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapS);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapT);
 
 	return targetTexture;
 }
