@@ -98,7 +98,7 @@
         // create sphere
         {
             var { vertices, normals, indices } = dsr.getSphere(5, 32, 32);
-            sphere.progoram = dsr.createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc);
+            sphere.progoram = dsr.createProgram(gl, vertexShaderSrc, fragmentShaderSrc);
             sphere.buffers = {
                 position: dsr.createBuffer(gl, sphere.progoram, new Float32Array(vertices), 'position'),
                 normal: dsr.createBuffer(gl, sphere.progoram, new Float32Array(normals), 'normal'),

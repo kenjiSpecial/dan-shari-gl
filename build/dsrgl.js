@@ -79,7 +79,7 @@
 	 *
 	 * @returns {WebGLProgram} program
 	 */
-	function createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc) {
+	function createProgram(gl, vertexShaderSrc, fragmentShaderSrc) {
 		var program = gl.createProgram();
 
 		var vertexShader = compileGLShader(gl, gl.VERTEX_SHADER, vertexShaderSrc);
@@ -1479,7 +1479,7 @@
 	exports.getUniformLocations = getUniformLocations;
 	exports.addLineNumbers = addLineNumbers;
 	exports.compileGLShader = compileGLShader;
-	exports.createPrgoram = createPrgoram;
+	exports.createProgram = createProgram;
 	exports.createBuffer = createBuffer;
 	exports.createIndex = createIndex;
 	exports.bindBuffer = bindBuffer;

@@ -75,7 +75,7 @@ export function compileGLShader(gl, type, shaderSource) {
  *
  * @returns {WebGLProgram} program
  */
-export function createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc) {
+export function createProgram(gl, vertexShaderSrc, fragmentShaderSrc) {
 	const program = gl.createProgram();
 
 	const vertexShader = compileGLShader(gl, gl.VERTEX_SHADER, vertexShaderSrc);
