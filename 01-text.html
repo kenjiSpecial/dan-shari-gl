@@ -187,7 +187,7 @@ hello world`;
             var { vertices, uvs, indices } = webglTextRenderging;
 
 
-            var program = dsr.createPrgoram(gl, vertexShaderSrc, fragmentShaderSrc); 
+            var program = dsr.createProgram(gl, vertexShaderSrc, fragmentShaderSrc); 
             var fontTexture = dsr.createImageTexture(gl, font.image);
 
             var modelMatrix = dsr.mat4.create();
