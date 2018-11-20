@@ -9,6 +9,11 @@
 	var RGB = 0x1907;
 	var CLAMP_TO_EDGE = 0x812f;
 
+	// Data types
+	// https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#Data_types
+
+	var UNSIGNED_BYTE = 0x1401;
+
 	/**
 	 * get uniform locations
 	 *
@@ -175,15 +180,18 @@
 		var magFilter = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : LINEAR;
 		var wrapS = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : CLAMP_TO_EDGE;
 		var wrapT = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : CLAMP_TO_EDGE;
+		var type = arguments.length > 8 && arguments[8] !== undefined ? arguments[8] : UNSIGNED_BYTE;
 
 		var targetTexture = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, targetTexture);
 
-		// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, textureWidth, textureWidth, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, null);
+		// define size and format of level 0
+		var level = 0;
+		// const type = gl.UNSIGNED_BYTE;
+		var data = null;
 
-		console.log(format);
-		if (gl.DEPTH_COMPONENT === format) console.log('format is DEPTH_COMPONENT');
+		// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
+		gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureWidth, data, format, type, data);
 
 		// set the filtering so we don't need mips
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
@@ -1175,6 +1183,20 @@
 		out[2] = a[2] + b[2];
 		return out;
 	}
+	/**
+	 * Subtracts vector b from vector a
+	 *
+	 * @param {vec3} out the receiving vector
+	 * @param {vec3} a the first operand
+	 * @param {vec3} b the second operand
+	 * @returns {vec3} out
+	 */
+	function subtract(out, a, b) {
+		out[0] = a[0] - b[0];
+		out[1] = a[1] - b[1];
+		out[2] = a[2] - b[2];
+		return out;
+	}
 
 	function rotateZ(out, a, b, c) {
 		var p = [],
@@ -1272,6 +1294,7 @@
 	var vec3 = /*#__PURE__*/Object.freeze({
 		create: create$2,
 		add: add,
+		subtract: subtract,
 		rotateZ: rotateZ,
 		rotateY: rotateY,
 		transformMat4: transformMat4,
@@ -1474,7 +1497,7 @@
 		return OrthoCamera;
 	}(Camera);
 
-	console.log('[danshariGL] version: 0.2.6, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
+	console.log('[danshariGL] version: 0.2.8, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
 
 	exports.getUniformLocations = getUniformLocations;
 	exports.addLineNumbers = addLineNumbers;
