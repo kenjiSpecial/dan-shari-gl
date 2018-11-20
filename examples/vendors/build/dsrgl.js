@@ -7,7 +7,13 @@
 	var FLOAT = 0x1406;
 
 	var RGB = 0x1907;
+	var LINEAR = 0x2601;
 	var CLAMP_TO_EDGE = 0x812f;
+
+	// Data types
+	// https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#Data_types
+
+	var UNSIGNED_BYTE = 0x1401;
 
 	/**
 	 * get uniform locations
@@ -175,15 +181,19 @@
 		var magFilter = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : LINEAR;
 		var wrapS = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : CLAMP_TO_EDGE;
 		var wrapT = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : CLAMP_TO_EDGE;
+		var type = arguments.length > 8 && arguments[8] !== undefined ? arguments[8] : UNSIGNED_BYTE;
 
 		var targetTexture = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, targetTexture);
 
-		// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, textureWidth, textureWidth, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, null);
+		// define size and format of level 0
+		var level = 0;
+		var border = 0;
+		// const type = gl.UNSIGNED_BYTE;
+		var data = null;
 
-		console.log(format);
-		if (gl.DEPTH_COMPONENT === format) console.log('format is DEPTH_COMPONENT');
+		// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
+		gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureWidth, border, format, type, data);
 
 		// set the filtering so we don't need mips
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
@@ -1474,7 +1484,7 @@
 		return OrthoCamera;
 	}(Camera);
 
-	console.log('[danshariGL] version: 0.2.6, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
+	console.log('[danshariGL] version: 0.2.7, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
 
 	exports.getUniformLocations = getUniformLocations;
 	exports.addLineNumbers = addLineNumbers;

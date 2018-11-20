@@ -1,4 +1,4 @@
-import { RGB, UNSIGNED_BYTE, CLAMP_TO_EDGE } from '../consts';
+import { RGB, UNSIGNED_BYTE, CLAMP_TO_EDGE, LINEAR } from '../consts';
 
 /**
  *
@@ -31,18 +31,16 @@ export function createEmptyTexture(
 	// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
 	gl.texImage2D(
 		gl.TEXTURE_2D,
-		0,
-		gl.DEPTH_COMPONENT,
+		level,
+		format,
 		textureWidth,
 		textureWidth,
-		0,
-		gl.DEPTH_COMPONENT,
-		gl.UNSIGNED_SHORT,
-		null
+		border,
+		format,
+		type,
+		data
 	  );
 	  
-	console.log(format);
-	if(gl.DEPTH_COMPONENT === format) console.log('format is DEPTH_COMPONENT');
 
 	// set the filtering so we don't need mips
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
