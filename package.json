@@ -1,6 +1,6 @@
 {
   "name": "dan-shari-gl",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "minimum webgl framework",
   "main": "build/dsrgl.js",
   "min": "build/dsrgl.min.js",

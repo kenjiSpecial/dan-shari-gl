@@ -188,12 +188,11 @@
 
 		// define size and format of level 0
 		var level = 0;
-		var border = 0;
 		// const type = gl.UNSIGNED_BYTE;
 		var data = null;
 
 		// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
-		gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureWidth, border, format, type, data);
+		gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureHeight, data, format, type, data);
 
 		// set the filtering so we don't need mips
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
@@ -1185,6 +1184,20 @@
 		out[2] = a[2] + b[2];
 		return out;
 	}
+	/**
+	 * Subtracts vector b from vector a
+	 *
+	 * @param {vec3} out the receiving vector
+	 * @param {vec3} a the first operand
+	 * @param {vec3} b the second operand
+	 * @returns {vec3} out
+	 */
+	function subtract(out, a, b) {
+		out[0] = a[0] - b[0];
+		out[1] = a[1] - b[1];
+		out[2] = a[2] - b[2];
+		return out;
+	}
 
 	function rotateZ(out, a, b, c) {
 		var p = [],
@@ -1282,6 +1295,7 @@
 	var vec3 = /*#__PURE__*/Object.freeze({
 		create: create$2,
 		add: add,
+		subtract: subtract,
 		rotateZ: rotateZ,
 		rotateY: rotateY,
 		transformMat4: transformMat4,
@@ -1484,7 +1498,7 @@
 		return OrthoCamera;
 	}(Camera);
 
-	console.log('[danshariGL] version: 0.2.7, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
+	console.log('[danshariGL] version: 0.2.8, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
 
 	exports.getUniformLocations = getUniformLocations;
 	exports.addLineNumbers = addLineNumbers;

@@ -34,13 +34,12 @@ export function createEmptyTexture(
 		level,
 		format,
 		textureWidth,
-		textureWidth,
-		border,
+		textureHeight,
+		data,
 		format,
 		type,
 		data
-	  );
-	  
+	);
 
 	// set the filtering so we don't need mips
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
