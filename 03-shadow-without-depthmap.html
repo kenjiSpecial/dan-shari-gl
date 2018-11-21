@@ -1,0 +1,837 @@
+<html>
+	<title>DEV</title>
+	<meta charset="UTF-8" />
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" />
+	<style>
+		* {
+			margin: 0;
+		}
+
+		html,
+		body {
+			font-family: 'Roboto', sans-serif;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+		}
+
+		canvas {
+			background: #000000;
+			display: block;
+		}
+
+		.dsr-desc {
+			position: absolute;
+			bottom: 20px;
+			left: 20px;
+			color: #cccccc;
+			font-size: 14px;
+			line-height: 1.75em;
+			z-index: 10;
+		}
+
+		.dsr-desc a {
+			color: #ffffff;
+		}
+	</style>
+	<meta
+		name="viewport"
+		content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+	/>
+	<!-- https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping -->
+	<body>
+		<div class="dsr-desc">
+			<p class="dsr-p">#00 - rendering sphere</p>
+			<p class="tubugl-p">See <a href="./index.html">more examples</a></p>
+		</div>
+
+		<script src="./vendors/dat.gui.min.js"></script>
+		<script src="./vendors/stats.min.js"></script>
+		<script src="./vendors/TweenMax.js"></script>
+
+		<script src="./vendors/build/dsrgl.js"></script>
+		<!-- plugin -->
+		<script src="./vendors/build/plugin/camera-controller.js"></script>
+
+		<script>
+			const shadowWidth = 1024;
+			const shadowHeight = 1024;
+
+			const vertexShaderSrc = `
+			        precision highp float;
+			        attribute vec4 position;
+			        attribute vec3 normal;
+			
+			        uniform mat4 uModelMatrix;
+			        uniform mat4 uViewMatrix;
+			        uniform mat4 uProjectionMatrix;
+			        uniform mat4 uLightSpaceMatrix;
+			
+			        varying vec3 vWorldPos;
+			        varying vec3 vNormal;
+			        varying vec4 vFragPosLightSpace;
+			
+			        void main() {
+			            vec4 worldPos = uModelMatrix * position;
+			            vWorldPos = vec3(worldPos);
+			            vNormal = normal;
+			            vFragPosLightSpace = uLightSpaceMatrix * worldPos;
+			            gl_Position = uProjectionMatrix * uViewMatrix * worldPos;
+			        }`;
+
+			const fragmentShaderSrc = `
+			        precision highp float;
+			
+			        uniform vec3 lightPos;
+			        uniform vec3 viewPos;
+			        uniform sampler2D uShadowMap;
+			
+			        varying vec3 vWorldPos;
+			        varying vec3 vNormal;
+			        varying vec4 vFragPosLightSpace;
+			
+			
+			float ShadowCalculation(vec4 fragPosLightSpace)
+			{
+			    // perform perspective divide
+			    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+			    // transform to [0,1] range
+			    projCoords = projCoords * 0.5 + 0.5;
+			    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+			    float closestDepth = texture2D(uShadowMap, projCoords.xy).r; 
+			    // get depth of current fragment from light's perspective
+			    float currentDepth = projCoords.z;
+			    // calculate bias (based on depth map resolution and slope)
+			    vec3 normal = normalize(vNormal);
+			    vec3 lightDir = normalize(lightPos - vWorldPos);
+			    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+			    // check whether current frag pos is in shadow
+			    // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+			    // PCF
+			    float shadow = 0.0;
+			    vec2 texelSize = 1.0 / vec2(2048.); //textureSize(shadowMap, 0);
+			    for(int x = -1; x <= 1; ++x)
+			    {
+			        for(int y = -1; y <= 1; ++y)
+			        {
+			            float pcfDepth = texture2D(uShadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
+			            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
+			        }    
+			    }
+			    shadow /= 9.0;
+			    
+			    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
+			    if(projCoords.z > 1.0)
+			        shadow = 0.0;
+			        
+			    return shadow;
+			}
+			
+			        void main(){
+			            vec3 color = vNormal/2. + vec3(0.5);
+			            vec3 lightColor = vec3(0.3);
+			
+			            // ambient
+			            vec3 ambient = 0.3 * color;
+			            // diffuse
+			            vec3 lightDir = normalize(lightPos - vWorldPos);
+			            float diff = max(dot(lightDir, vNormal), 0.0);
+			            vec3 diffuse = diff * lightColor;
+			            // specular
+			            vec3 viewDir = normalize(viewPos - vWorldPos);
+			            vec3 reflectDir = reflect(-lightDir, vNormal);
+			            float spec = 0.0;
+			            vec3 halfwayDir = normalize(lightDir + viewDir);  
+			            spec = pow(max(dot(vNormal, halfwayDir), 0.0), 64.0);
+			            vec3 specular = spec * lightColor;
+			            // calculate shadow
+			            float shadow = ShadowCalculation(vFragPosLightSpace);    
+			            vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+			
+			            gl_FragColor = vec4(lighting, 1.0);
+			        }
+			        `;
+
+			const debugVertShaderSrc = `
+			        precision highp float;
+			
+			        precision highp float;
+			        attribute vec4 position;
+			        attribute vec2 uv;
+			        
+			        varying vec2 vUv;
+			
+			        void main() {
+			            gl_Position =vec4(position.xy, 0.0, 0.5);
+			            vUv = uv;
+			        }
+			        `;
+
+			const debugFragShaderSrc = `
+			        precision highp float;
+			
+			        uniform sampler2D uTexture;
+			        uniform float uNear;
+			        uniform float uFar;
+			
+			        varying vec2 vUv;
+			
+			        // required when using a perspective projection matrix
+			        float LinearizeDepth(float depth)
+			        {
+			            float z = depth * 2.0 - 1.0; // Back to NDC 
+			            return (2.0 * uNear * uFar) / (uFar + uNear - z * (uFar - uNear));	
+			        }
+			
+			        void main(){
+			            vec4 depthValue = texture2D(uTexture, vUv);
+			            // gl_FragColor = vec4(vec3(LinearizeDepth(depthValue) / uFar), 1.0);
+			            gl_FragColor = depthValue;
+			        }
+			        `;
+
+			const depthVertShaderSrc = `
+			        precision highp float;
+			
+			        attribute vec4 position;
+			
+			        uniform mat4 uModelMatrix;
+			        uniform mat4 uLightSpaceMatrix;
+			
+			        void main() {
+			            gl_Position = uLightSpaceMatrix * uModelMatrix * position;
+			        }
+			        `;
+
+			const depthFragShaderSrc = `
+			        precision highp float;
+			
+			        vec4 encodeFloat (float depth) {
+			        const vec4 bitShift = vec4(
+			            256 * 256 * 256,
+			            256 * 256,
+			            256,
+			            1.0
+			        );
+			        const vec4 bitMask = vec4(
+			            0,
+			            1.0 / 256.0,
+			            1.0 / 256.0,
+			            1.0 / 256.0
+			        );
+			        vec4 comp = fract(depth * bitShift);
+			        comp -= comp.xxyz * bitMask;
+			        return comp;
+			        }
+			
+			        void main() {
+			            gl_FragColor = encodeFloat(gl_FragCoord.z);
+			        }
+			        `;
+
+			var canvas = document.createElement('canvas');
+			var gl = canvas.getContext('webgl', { antialias: false });
+			var ext = gl.getExtension('WEBGL_depth_texture');
+			var ext2 = gl.getExtension('OES_texture_float');
+
+			console.log('WEBGL_depth_texture', ext, 'OES_texture_float', ext2);
+
+			document.body.appendChild(canvas);
+
+			var viewportWidth, viewportHeight;
+
+			var sphere = {};
+			var materialBall = {};
+			var plane = {};
+			var debugPlane = {};
+			var materialBallData;
+			var depthMapFBO;
+			var depthTexture, colorTexture;
+			var light = {};
+			var time = 0;
+
+
+			resize();
+
+			gl.clearColor(0, 0, 0, 1);
+			gl.enable(gl.DEPTH_TEST);
+			gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+			var jsonUrl = './assets/material-ball.json';
+
+			dsr.getAjaxJson(jsonUrl).then(data => {
+				materialBallData = data;
+				// console.log(data);
+				init();
+			});
+
+			var camera, cameraController;
+
+			function init() {
+				camera = new dsr.PerspectiveCamera(
+					window.innerWidth,
+					window.innerHeight,
+					45,
+					0.1,
+					1000
+				);
+				camera.updatePosition(0, 0, 20);
+				camera.updateLookAtPosition(0, 0, 0);
+				camera.updateViewMatrix();
+
+				cameraController = new dsr.CameraController(camera);
+
+				// create sphere
+				{
+					var { vertices, normals, indices } = dsr.getSphere(3, 32, 32);
+					sphere.program = dsr.createProgram(gl, vertexShaderSrc, fragmentShaderSrc);
+					sphere.buffers = {
+						position: dsr.createBuffer(
+							gl,
+							sphere.program,
+							new Float32Array(vertices),
+							'position'
+						),
+						normal: dsr.createBuffer(
+							gl,
+							sphere.program,
+							new Float32Array(normals),
+							'normal'
+						),
+						index: dsr.createIndex(gl, new Uint16Array(indices))
+					};
+					let quat = dsr.quat.create();
+					let mat = dsr.mat4.create();
+					dsr.mat4.fromRotationTranslationScale(mat, quat, [5, 0, 0], [1, 1, 1]);
+					sphere.matrix = {
+						modelMatrix: mat,
+						mvMatrix: dsr.mat4.create(),
+						mvpMatrix: dsr.mat4.create()
+					};
+					sphere.uniforms = dsr.getUniformLocations(gl, sphere.program, [
+						'uModelMatrix',
+						'uViewMatrix',
+						'uProjectionMatrix',
+						'uLightSpaceMatrix',
+						'lightPos',
+						'viewPos'
+					]);
+				}
+
+				// create plane
+				{
+					var { vertices, normals, indices } = dsr.createSimplePlane();
+					console.log(vertices, normals);
+
+					const program = dsr.createProgram(gl, vertexShaderSrc, fragmentShaderSrc);
+					plane.program = program;
+					plane.buffers = {
+						position: dsr.createBuffer(
+							gl,
+							program,
+							new Float32Array(vertices),
+							'position'
+						),
+						normal: dsr.createBuffer(gl, program, new Float32Array(normals), 'normal'),
+						index: dsr.createIndex(gl, new Uint16Array(indices))
+					};
+					let quat = dsr.quat.create();
+					dsr.quat.rotateX(quat, quat, Math.PI / 2);
+					let mat = dsr.mat4.create();
+					dsr.mat4.fromRotationTranslationScale(mat, quat, [0, -3, 0], [100, 100, 100]);
+
+					plane.matrix = {
+						modelMatrix: mat,
+						mvMatrix: dsr.mat4.create(),
+						mvpMatrix: dsr.mat4.create()
+					};
+					plane.uniforms = dsr.getUniformLocations(gl, program, [
+						'uModelMatrix',
+						'uViewMatrix',
+						'uProjectionMatrix',
+						'uLightSpaceMatrix',
+						'lightPos',
+						'viewPos'
+					]);
+				}
+
+				// create material ball
+				{
+					var normal = materialBallData.data.attributes.normal.array;
+					var position = materialBallData.data.attributes.position.array;
+					var indices = materialBallData.data.index.array;
+
+					const program = dsr.createProgram(gl, vertexShaderSrc, fragmentShaderSrc);
+					materialBall.program = program;
+					materialBall.buffers = {
+						position: dsr.createBuffer(
+							gl,
+							program,
+							new Float32Array(position),
+							'position'
+						),
+						normal: dsr.createBuffer(gl, program, new Float32Array(normal), 'normal'),
+						index: dsr.createIndex(gl, new Uint16Array(indices))
+					};
+					let quat = dsr.quat.create();
+					let mat = dsr.mat4.create();
+					dsr.mat4.fromRotationTranslationScale(mat, quat, [-5, 0.9, 0], [0.5, 0.5, 0.5]);
+					materialBall.matrix = {
+						modelMatrix: mat,
+						mvMatrix: dsr.mat4.create(),
+						mvpMatrix: dsr.mat4.create()
+					};
+					materialBall.uniforms = dsr.getUniformLocations(gl, program, [
+						'uModelMatrix',
+						'uViewMatrix',
+						'uProjectionMatrix',
+						'uLightSpaceMatrix',
+						'lightPos',
+						'viewPos'
+					]);
+				}
+
+				// create debugQuad
+
+				{
+					var { vertices, uvs, indices } = dsr.createSimplePlane();
+					// console.log(uvs);
+					const program = dsr.createProgram(gl, debugVertShaderSrc, debugFragShaderSrc);
+					debugPlane.program = program;
+					debugPlane.buffers = {
+						position: dsr.createBuffer(
+							gl,
+							program,
+							new Float32Array(vertices),
+							'position'
+						),
+						uv: dsr.createBuffer(gl, program, new Float32Array(uvs), 'uv'),
+						index: dsr.createIndex(gl, new Uint16Array(indices))
+					};
+					debugPlane.uniforms = dsr.getUniformLocations(gl, program, [
+						'uTexture',
+						'uNear',
+						'uFar'
+					]);
+				}
+
+				simpleDepthShader = dsr.createProgram(gl, depthVertShaderSrc, depthFragShaderSrc);
+				simpleDepthUniforms = dsr.getUniformLocations(gl, simpleDepthShader, [
+					'uModelMatrix',
+					'uLightSpaceMatrix'
+				]);
+
+				console.log(simpleDepthUniforms);
+				light = {
+					lightPos: [0, 30, 40],
+					projectionMatrix: dsr.mat4.create(),
+					viewMatrix: dsr.mat4.create(),
+					spaceMatrix: dsr.mat4.create(),
+					nearPlane: 1,
+					farPlane: 1000
+				};
+
+				const lightSide = 50;
+				dsr.mat4.ortho(
+					light.projectionMatrix,
+					-lightSide,
+					lightSide,
+					-lightSide,
+					lightSide,
+					light.nearPlane,
+					light.farPlane
+				);
+				//lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+				dsr.mat4.lookAt(light.viewMatrix, light.lightPos, [0, 0, 0], [0, 1, 0]);
+				dsr.mat4.multiply(light.spaceMatrix, light.projectionMatrix, light.viewMatrix);
+
+				depthMapFBO = gl.createFramebuffer();
+				gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
+
+				// create depth framebuffer
+				// https://github.com/WebGLSamples/WebGL2Samples/blob/master/samples/fbo_rtt_depth_texture.html#L184
+
+				depthTexture = dsr.createEmptyTexture(
+					gl,
+					shadowWidth,
+					shadowHeight,
+					gl.RGBA,
+					gl.NEAREST,
+					gl.NEAREST);
+				// 	gl.CLAMP_TO_EDGE,
+				// 	gl.CLAMP_TO_EDGE,
+                //     // gl.FLOAT
+                //     gl.UNSIGNED_BYTE
+                // );
+                // depthTexture = gl.createTexture()
+                // gl.bindTexture(gl.TEXTURE_2D, depthTexture)
+                // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+                // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+                // gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, shadowWidth,
+                // shadowWidth, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+
+				// Create the depth texture used as our shadow map
+
+				gl.framebufferTexture2D(
+					gl.FRAMEBUFFER,
+					gl.COLOR_ATTACHMENT0,
+					gl.TEXTURE_2D,
+					depthTexture,
+					0
+				);
+
+				try {
+					var success =
+						gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+					if (!success) 'frambuffer incmplete';
+				} catch (error) {
+					console.error(error);
+					return 0;
+				}
+
+				gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+				tick();
+			}
+
+			//
+
+			/**
+			 * set debug tool(dat.gui)
+			 **/
+			let loopId;
+			let player = {
+				playAndStop: function() {
+					isPlay = !isPlay;
+					if (isPlay) {
+						playAndStopGui.name('pause');
+						loopId = requestAnimationFrame(tick);
+					} else {
+						playAndStopGui.name('play');
+						cancelAnimationFrame(loopId);
+					}
+				}
+			};
+			let isPlay = true;
+			let gui = new window.dat.GUI();
+			let playAndStopGui = gui.add(player, 'playAndStop').name('pause');
+
+			let stats = new Stats();
+			document.body.appendChild(stats.dom);
+
+			//
+
+			function resize() {
+				viewportWidth = window.innerWidth;
+				viewportHeight = window.innerHeight;
+				canvas.width = viewportWidth;
+				canvas.height = viewportHeight;
+
+				if (camera) camera.resize(viewportHeight, viewportHeight);
+			}
+
+			function tick() {
+				stats.update();
+				time += 1 / 60;
+
+				// light.lightPos[0] = 30 * Math.cos(time);
+				// light.lightPos[2] = 30 * Math.sin(time);
+				// dsr.mat4.lookAt( light.viewMatrix,light.lightPos, [0, 0, 0], [0, 1, 0]);
+				dsr.mat4.multiply(light.spaceMatrix, light.projectionMatrix, light.viewMatrix);
+
+				gl.clearColor(0, 0, 0, 1);
+				gl.enable(gl.DEPTH_TEST);
+
+				gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
+				gl.viewport(0, 0, shadowWidth, shadowWidth);
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+				depthRenderMesh();
+				gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+				gl.viewport(0, 0, viewportWidth, viewportHeight);
+
+				renderMesh();
+
+				const debugWidth = 200;
+				gl.clear(gl.DEPTH_BUFFER_BIT);
+
+				gl.viewport(
+					viewportWidth - debugWidth - 20,
+					20,
+					debugWidth,
+					(viewportHeight / viewportWidth) * debugWidth
+				);
+
+				renderDebugMesh();
+
+				loopId = requestAnimationFrame(tick);
+			}
+
+			function depthRenderMesh() {
+				gl.useProgram(simpleDepthShader);
+				gl.uniformMatrix4fv(
+					simpleDepthUniforms.uLightSpaceMatrix,
+					false,
+					light.spaceMatrix
+				);
+
+				if (sphere) {
+					dsr.bindBuffer(
+						gl,
+						sphere.buffers.position.buffer,
+						sphere.buffers.position.location,
+						3
+					);
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphere.buffers.index.buffer);
+					gl.uniformMatrix4fv(
+						simpleDepthUniforms.uModelMatrix,
+						false,
+						sphere.matrix.modelMatrix
+					);
+					gl.drawElements(gl.TRIANGLES, sphere.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
+				}
+
+				if (plane) {
+					dsr.bindBuffer(
+						gl,
+						plane.buffers.position.buffer,
+						plane.buffers.position.location,
+						3
+					);
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, plane.buffers.index.buffer);
+					gl.uniformMatrix4fv(
+						simpleDepthUniforms.uModelMatrix,
+						false,
+						plane.matrix.modelMatrix
+					);
+					gl.drawElements(gl.TRIANGLES, plane.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
+				}
+
+				if (materialBall) {
+					dsr.bindBuffer(
+						gl,
+						materialBall.buffers.position.buffer,
+						materialBall.buffers.position.location,
+						3
+					);
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, materialBall.buffers.index.buffer);
+					gl.uniformMatrix4fv(
+						simpleDepthUniforms.uModelMatrix,
+						false,
+						materialBall.matrix.modelMatrix
+					);
+					gl.drawElements(
+						gl.TRIANGLES,
+						materialBall.buffers.index.cnt,
+						gl.UNSIGNED_SHORT,
+						0
+					);
+				}
+			}
+
+			function renderMesh() {
+				if (sphere) {
+					// dsr.mat4.multiply(sphere.matrix.mvMatrix, camera.viewMatrix, sphere.matrix.modelMatrix);
+					// dsr.mat4.multiply(sphere.matrix.mvpMatrix, camera.projectionMatrix, sphere.matrix.mvMatrix);
+
+					gl.useProgram(sphere.program);
+
+					dsr.bindBuffer(
+						gl,
+						sphere.buffers.position.buffer,
+						sphere.buffers.position.location,
+						3
+					);
+					dsr.bindBuffer(
+						gl,
+						sphere.buffers.normal.buffer,
+						sphere.buffers.normal.location,
+						3
+					);
+
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphere.buffers.index.buffer);
+
+					gl.uniformMatrix4fv(
+						sphere.uniforms.uModelMatrix,
+						false,
+						sphere.matrix.modelMatrix
+					);
+					gl.uniformMatrix4fv(sphere.uniforms.uViewMatrix, false, camera.viewMatrix);
+					gl.uniformMatrix4fv(
+						sphere.uniforms.uProjectionMatrix,
+						false,
+						camera.projectionMatrix
+					);
+					gl.uniformMatrix4fv(
+						sphere.uniforms.uLightSpaceMatrix,
+						false,
+						light.spaceMatrix
+					);
+					gl.uniform3f(
+						sphere.uniforms.lightPos,
+						light.lightPos[0],
+						light.lightPos[1],
+						light.lightPos[2]
+					);
+					gl.uniform3f(
+						sphere.uniforms.viewPos,
+						camera.position.x,
+						camera.position.y,
+						camera.position.z
+					);
+
+					gl.drawElements(gl.TRIANGLES, sphere.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
+				}
+
+				if (plane) {
+					dsr.mat4.multiply(
+						plane.matrix.mvMatrix,
+						camera.viewMatrix,
+						plane.matrix.modelMatrix
+					);
+					dsr.mat4.multiply(
+						plane.matrix.mvpMatrix,
+						camera.projectionMatrix,
+						plane.matrix.mvMatrix
+					);
+
+					gl.useProgram(plane.program);
+
+					dsr.bindBuffer(
+						gl,
+						plane.buffers.position.buffer,
+						plane.buffers.position.location,
+						3
+					);
+					dsr.bindBuffer(
+						gl,
+						plane.buffers.normal.buffer,
+						plane.buffers.normal.location,
+						3
+					);
+
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, plane.buffers.index.buffer);
+
+					gl.uniformMatrix4fv(
+						plane.uniforms.uModelMatrix,
+						false,
+						plane.matrix.modelMatrix
+					);
+					gl.uniformMatrix4fv(plane.uniforms.uViewMatrix, false, camera.viewMatrix);
+					gl.uniformMatrix4fv(
+						plane.uniforms.uProjectionMatrix,
+						false,
+						camera.projectionMatrix
+					);
+					gl.uniformMatrix4fv(plane.uniforms.uLightSpaceMatrix, false, light.spaceMatrix);
+					gl.uniform3f(
+						plane.uniforms.lightPos,
+						light.lightPos[0],
+						light.lightPos[1],
+						light.lightPos[2]
+					);
+					gl.uniform3f(
+						plane.uniforms.viewPos,
+						camera.position.x,
+						camera.position.y,
+						camera.position.z
+					);
+
+					gl.drawElements(gl.TRIANGLES, plane.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
+				}
+
+				if (materialBall) {
+					dsr.mat4.multiply(
+						materialBall.matrix.mvMatrix,
+						camera.viewMatrix,
+						materialBall.matrix.modelMatrix
+					);
+					dsr.mat4.multiply(
+						materialBall.matrix.mvpMatrix,
+						camera.projectionMatrix,
+						materialBall.matrix.mvMatrix
+					);
+
+					gl.useProgram(materialBall.program);
+
+					dsr.bindBuffer(
+						gl,
+						materialBall.buffers.position.buffer,
+						materialBall.buffers.position.location,
+						3
+					);
+					dsr.bindBuffer(
+						gl,
+						materialBall.buffers.normal.buffer,
+						materialBall.buffers.normal.location,
+						3
+					);
+
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, materialBall.buffers.index.buffer);
+
+					gl.uniformMatrix4fv(
+						materialBall.uniforms.uModelMatrix,
+						false,
+						materialBall.matrix.modelMatrix
+					);
+					gl.uniformMatrix4fv(
+						materialBall.uniforms.uViewMatrix,
+						false,
+						camera.viewMatrix
+					);
+					gl.uniformMatrix4fv(
+						materialBall.uniforms.uProjectionMatrix,
+						false,
+						camera.projectionMatrix
+					);
+					gl.uniformMatrix4fv(
+						materialBall.uniforms.uLightSpaceMatrix,
+						false,
+						light.spaceMatrix
+					);
+					gl.uniform3f(
+						materialBall.uniforms.lightPos,
+						light.lightPos[0],
+						light.lightPos[1],
+						light.lightPos[2]
+					);
+					gl.uniform3f(
+						materialBall.uniforms.viewPos,
+						camera.position.x,
+						camera.position.y,
+						camera.position.z
+					);
+
+					gl.drawElements(
+						gl.TRIANGLES,
+						materialBall.buffers.index.cnt,
+						gl.UNSIGNED_SHORT,
+						0
+					);
+				}
+			}
+
+			function renderDebugMesh() {
+				if (debugPlane) {
+					// console.log('??');
+					var { program, buffers, uniforms } = debugPlane;
+					var { position, uv, index } = buffers;
+					gl.useProgram(program);
+
+					dsr.bindBuffer(gl, position.buffer, position.location, 3);
+					dsr.bindBuffer(gl, uv.buffer, uv.location, 2);
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index.buffer);
+
+					dsr.activeTexture(gl, depthTexture, uniforms.uTexture, 0);
+					gl.uniform1f(uniforms.uNear, light.nearPlane);
+					gl.uniform1f(uniforms.uFar, light.farPlane);
+					// console.log(light.farPlane);
+					// console.log(uniforms);
+
+					gl.drawElements(gl.TRIANGLES, index.cnt, gl.UNSIGNED_SHORT, 0);
+				}
+			}
+		</script>
+	</body>
+</html>

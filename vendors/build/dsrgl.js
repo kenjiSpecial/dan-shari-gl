@@ -7,6 +7,7 @@
 	var FLOAT = 0x1406;
 
 	var RGB = 0x1907;
+	var LINEAR = 0x2601;
 	var CLAMP_TO_EDGE = 0x812f;
 
 	// Data types
@@ -191,7 +192,7 @@
 		var data = null;
 
 		// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
-		gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureWidth, data, format, type, data);
+		gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureHeight, data, format, type, data);
 
 		// set the filtering so we don't need mips
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);

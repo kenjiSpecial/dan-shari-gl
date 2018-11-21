@@ -357,7 +357,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
                 farPlane: 100
             }
 
-            const lightSide = 20;
+            const lightSide = 30;
             dsr.mat4.ortho(light.projectionMatrix, 
                         -lightSide, lightSide, 
                         -lightSide, lightSide, 
@@ -380,7 +380,8 @@ float ShadowCalculation(vec4 fragPosLightSpace)
                 gl.NEAREST, 
                 gl.CLAMP_TO_EDGE,
 	            gl.CLAMP_TO_EDGE,
-                gl.FLOAT
+                // gl.FLOAT
+                gl.UNSIGNED_SHORT
             );
 
             // Create the depth texture used as our shadow map
@@ -453,6 +454,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
         
             gl.clearColor(0, 0, 0, 1);
             gl.enable(gl.DEPTH_TEST);
+            // gl.enable(gl.CULL_FACE);
 
             gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
             gl.viewport(0, 0, shadowWidth, shadowWidth);
@@ -468,7 +470,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
             const debugWidth = 200;
             gl.clear(gl.DEPTH_BUFFER_BIT);
 
-            gl.viewport(viewportWidth - debugWidth - 20, 20, debugWidth, viewportHeight/viewportWidth * debugWidth);
+            gl.viewport(viewportWidth - debugWidth - 20, 20, debugWidth, debugWidth);
 
             renderDebugMesh();
 
