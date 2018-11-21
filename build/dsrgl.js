@@ -1141,7 +1141,57 @@
 		exactEquals: exactEquals
 	});
 
+	/**
+	 * 3x3 Matrix
+	 * @module mat3
+	 */
+	/**
+	 * Creates a new identity mat3
+	 *
+	 * @returns {mat3} a new 3x3 matrix
+	 */
 	function create$1() {
+	  var out = new ARRAY_TYPE(9);
+	  if (ARRAY_TYPE != Float32Array) {
+	    out[1] = 0;
+	    out[2] = 0;
+	    out[3] = 0;
+	    out[5] = 0;
+	    out[6] = 0;
+	    out[7] = 0;
+	  }
+	  out[0] = 1;
+	  out[4] = 1;
+	  out[8] = 1;
+	  return out;
+	}
+
+	/**
+	 * Copies the upper-left 3x3 values into the given mat3.
+	 *
+	 * @param {mat3} out the receiving 3x3 matrix
+	 * @param {mat4} a   the source 4x4 matrix
+	 * @returns {mat3} out
+	 */
+	function fromMat4(out, a) {
+	  out[0] = a[0];
+	  out[1] = a[1];
+	  out[2] = a[2];
+	  out[3] = a[4];
+	  out[4] = a[5];
+	  out[5] = a[6];
+	  out[6] = a[8];
+	  out[7] = a[9];
+	  out[8] = a[10];
+	  return out;
+	}
+
+	var mat3 = /*#__PURE__*/Object.freeze({
+		create: create$1,
+		fromMat4: fromMat4
+	});
+
+	function create$2() {
 		var out = new ARRAY_TYPE(4);
 		if (ARRAY_TYPE != Float32Array) {
 			out[0] = 0;
@@ -1175,12 +1225,54 @@
 		return out;
 	}
 
+	/**
+	 * Creates a quaternion from the given 3x3 rotation matrix.
+	 *
+	 * NOTE: The resultant quaternion is not normalized, so you should be sure
+	 * to renormalize the quaternion yourself where necessary.
+	 *
+	 * @param {quat} out the receiving quaternion
+	 * @param {mat3} m rotation matrix
+	 * @returns {quat} out
+	 * @function
+	 */
+	function fromMat3(out, m) {
+		// Algorithm in Ken Shoemake's article in 1987 SIGGRAPH course notes
+		// article "Quaternion Calculus and Fast Animation".
+		var fTrace = m[0] + m[4] + m[8];
+		var fRoot = void 0;
+		if (fTrace > 0.0) {
+			// |w| > 1/2, may as well choose w > 1/2
+			fRoot = Math.sqrt(fTrace + 1.0); // 2w
+			out[3] = 0.5 * fRoot;
+			fRoot = 0.5 / fRoot; // 1/(4w)
+			out[0] = (m[5] - m[7]) * fRoot;
+			out[1] = (m[6] - m[2]) * fRoot;
+			out[2] = (m[1] - m[3]) * fRoot;
+		} else {
+			// |w| <= 1/2
+			var i = 0;
+			if (m[4] > m[0]) i = 1;
+			if (m[8] > m[i * 3 + i]) i = 2;
+			var j = (i + 1) % 3;
+			var k = (i + 2) % 3;
+			fRoot = Math.sqrt(m[i * 3 + i] - m[j * 3 + j] - m[k * 3 + k] + 1.0);
+			out[i] = 0.5 * fRoot;
+			fRoot = 0.5 / fRoot;
+			out[3] = (m[j * 3 + k] - m[k * 3 + j]) * fRoot;
+			out[j] = (m[j * 3 + i] + m[i * 3 + j]) * fRoot;
+			out[k] = (m[k * 3 + i] + m[i * 3 + k]) * fRoot;
+		}
+		return out;
+	}
+
 	var quat = /*#__PURE__*/Object.freeze({
-		create: create$1,
-		rotateX: rotateX
+		create: create$2,
+		rotateX: rotateX,
+		fromMat3: fromMat3
 	});
 
-	function create$2() {
+	function create$3() {
 		var out = new ARRAY_TYPE(3);
 		if (ARRAY_TYPE != Float32Array) {
 			out[0] = 0;
@@ -1305,7 +1397,7 @@
 	}
 
 	var vec3 = /*#__PURE__*/Object.freeze({
-		create: create$2,
+		create: create$3,
 		add: add,
 		subtract: subtract,
 		rotateZ: rotateZ,
@@ -1510,7 +1602,7 @@
 		return OrthoCamera;
 	}(Camera);
 
-	console.log('[danshariGL] version: 0.2.9, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
+	console.log('[danshariGL] version: 0.2.10, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
 
 	exports.getUniformLocations = getUniformLocations;
 	exports.addLineNumbers = addLineNumbers;
@@ -1534,6 +1626,7 @@
 	exports.PerspectiveCamera = PerspectiveCamera;
 	exports.OrthoCamera = OrthoCamera;
 	exports.glMatrix = common;
+	exports.mat3 = mat3;
 	exports.mat4 = mat4;
 	exports.quat = quat;
 	exports.vec3 = vec3;
