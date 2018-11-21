@@ -1,4 +1,4 @@
-import { RGB, UNSIGNED_BYTE, CLAMP_TO_EDGE } from '../consts';
+import { RGB, UNSIGNED_BYTE, CLAMP_TO_EDGE, LINEAR } from '../consts';
 
 /**
  *
@@ -34,7 +34,7 @@ export function createEmptyTexture(
 		level,
 		format,
 		textureWidth,
-		textureWidth,
+		textureHeight,
 		data,
 		format,
 		type,
