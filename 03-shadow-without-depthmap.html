@@ -54,8 +54,8 @@
 		<script src="./vendors/build/plugin/camera-controller.js"></script>
 
 		<script>
-			const shadowWidth = 1024;
-			const shadowHeight = 1024;
+			const shadowWidth = 512;
+			const shadowHeight = 512;
 
 			const vertexShaderSrc = `
 			        precision highp float;
@@ -69,13 +69,16 @@
 			
 			        varying vec3 vWorldPos;
 			        varying vec3 vNormal;
-			        varying vec4 vFragPosLightSpace;
+					varying vec4 vFragPosLightSpace;
+					
+					const mat4 texUnitConverter = mat4(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 
+													0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
 			
 			        void main() {
 			            vec4 worldPos = uModelMatrix * position;
 			            vWorldPos = vec3(worldPos);
 			            vNormal = normal;
-			            vFragPosLightSpace = uLightSpaceMatrix * worldPos;
+			            vFragPosLightSpace = texUnitConverter * uLightSpaceMatrix * worldPos;
 			            gl_Position = uProjectionMatrix * uViewMatrix * worldPos;
 			        }`;
 
@@ -90,65 +93,39 @@
 			        varying vec3 vNormal;
 			        varying vec4 vFragPosLightSpace;
 			
+					float decodeFloat (vec4 color) {
+					const vec4 bitShift = vec4(
+						1.0 / (256.0 * 256.0 * 256.0),
+						1.0 / (256.0 * 256.0),
+						1.0 / 256.0,
+						1
+					);
+					return dot(color, bitShift);
+					}
+
 			
-			float ShadowCalculation(vec4 fragPosLightSpace)
-			{
-			    // perform perspective divide
-			    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-			    // transform to [0,1] range
-			    projCoords = projCoords * 0.5 + 0.5;
-			    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-			    float closestDepth = texture2D(uShadowMap, projCoords.xy).r; 
-			    // get depth of current fragment from light's perspective
-			    float currentDepth = projCoords.z;
-			    // calculate bias (based on depth map resolution and slope)
-			    vec3 normal = normalize(vNormal);
-			    vec3 lightDir = normalize(lightPos - vWorldPos);
-			    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
-			    // check whether current frag pos is in shadow
-			    // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
-			    // PCF
-			    float shadow = 0.0;
-			    vec2 texelSize = 1.0 / vec2(2048.); //textureSize(shadowMap, 0);
-			    for(int x = -1; x <= 1; ++x)
-			    {
-			        for(int y = -1; y <= 1; ++y)
-			        {
-			            float pcfDepth = texture2D(uShadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
-			            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
-			        }    
-			    }
-			    shadow /= 9.0;
-			    
-			    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
-			    if(projCoords.z > 1.0)
-			        shadow = 0.0;
-			        
-			    return shadow;
-			}
 			
 			        void main(){
-			            vec3 color = vNormal/2. + vec3(0.5);
-			            vec3 lightColor = vec3(0.3);
-			
-			            // ambient
-			            vec3 ambient = 0.3 * color;
-			            // diffuse
-			            vec3 lightDir = normalize(lightPos - vWorldPos);
-			            float diff = max(dot(lightDir, vNormal), 0.0);
-			            vec3 diffuse = diff * lightColor;
-			            // specular
-			            vec3 viewDir = normalize(viewPos - vWorldPos);
-			            vec3 reflectDir = reflect(-lightDir, vNormal);
-			            float spec = 0.0;
-			            vec3 halfwayDir = normalize(lightDir + viewDir);  
-			            spec = pow(max(dot(vNormal, halfwayDir), 0.0), 64.0);
-			            vec3 specular = spec * lightColor;
-			            // calculate shadow
-			            float shadow = ShadowCalculation(vFragPosLightSpace);    
-			            vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
-			
-			            gl_FragColor = vec4(lighting, 1.0);
+			            vec3 fragmentDepth = vFragPosLightSpace.xyz;
+						float shadowAcneRemover = 0.007;
+						fragmentDepth.z -= shadowAcneRemover;
+
+						float texelSize = 1.0 / ${shadowWidth}.0;
+						  float amountInLight = 0.0;
+						  
+						  for (int x = -1; x <= 1; x++) {
+						for (int y = -1; y <= 1; y++) {
+						float texelDepth = decodeFloat(texture2D(uShadowMap,
+						fragmentDepth.xy + vec2(x, y) * texelSize));
+						if (fragmentDepth.z < texelDepth) {
+							amountInLight += 1.0;
+						}
+						}
+					}
+					amountInLight /= 9.0;
+					vec3 uColor = vNormal/2. + vec3(0.5);
+					gl_FragColor = vec4(amountInLight * uColor, 1.0);
+
 			        }
 			        `;
 
@@ -225,7 +202,7 @@
 			        }
 			
 			        void main() {
-			            gl_FragColor = encodeFloat(gl_FragCoord.z);
+			            gl_FragColor =  encodeFloat(gl_FragCoord.z);
 			        }
 			        `;
 
@@ -302,7 +279,7 @@
 					};
 					let quat = dsr.quat.create();
 					let mat = dsr.mat4.create();
-					dsr.mat4.fromRotationTranslationScale(mat, quat, [5, 0, 0], [1, 1, 1]);
+					dsr.mat4.fromRotationTranslationScale(mat, quat, [5, 3, 0], [1, 1, 1]);
 					sphere.matrix = {
 						modelMatrix: mat,
 						mvMatrix: dsr.mat4.create(),
@@ -321,7 +298,6 @@
 				// create plane
 				{
 					var { vertices, normals, indices } = dsr.createSimplePlane();
-					console.log(vertices, normals);
 
 					const program = dsr.createProgram(gl, vertexShaderSrc, fragmentShaderSrc);
 					plane.program = program;
@@ -428,10 +404,10 @@
 					viewMatrix: dsr.mat4.create(),
 					spaceMatrix: dsr.mat4.create(),
 					nearPlane: 1,
-					farPlane: 1000
+					farPlane: 100
 				};
 
-				const lightSide = 50;
+				const lightSide = 10;
 				dsr.mat4.ortho(
 					light.projectionMatrix,
 					-lightSide,
@@ -544,7 +520,10 @@
 
 				gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
 				gl.viewport(0, 0, shadowWidth, shadowWidth);
-				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	 			// gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+				gl.clearColor(0, 0, 0, 1)
+				gl.clearDepth(1.0)
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 				depthRenderMesh();
 				gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
@@ -560,7 +539,7 @@
 					viewportWidth - debugWidth - 20,
 					20,
 					debugWidth,
-					(viewportHeight / viewportWidth) * debugWidth
+					 debugWidth
 				);
 
 				renderDebugMesh();
@@ -575,6 +554,22 @@
 					false,
 					light.spaceMatrix
 				);
+
+				if (plane) {
+					dsr.bindBuffer(
+						gl,
+						plane.buffers.position.buffer,
+						plane.buffers.position.location,
+						3
+					);
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, plane.buffers.index.buffer);
+					gl.uniformMatrix4fv(
+						simpleDepthUniforms.uModelMatrix,
+						false,
+						plane.matrix.modelMatrix
+					);
+					gl.drawElements(gl.TRIANGLES, plane.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
+				}
 
 				if (sphere) {
 					dsr.bindBuffer(
@@ -592,21 +587,7 @@
 					gl.drawElements(gl.TRIANGLES, sphere.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
 				}
 
-				if (plane) {
-					dsr.bindBuffer(
-						gl,
-						plane.buffers.position.buffer,
-						plane.buffers.position.location,
-						3
-					);
-					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, plane.buffers.index.buffer);
-					gl.uniformMatrix4fv(
-						simpleDepthUniforms.uModelMatrix,
-						false,
-						plane.matrix.modelMatrix
-					);
-					gl.drawElements(gl.TRIANGLES, plane.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
-				}
+				
 
 				if (materialBall) {
 					dsr.bindBuffer(
