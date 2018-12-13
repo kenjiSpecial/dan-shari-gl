@@ -1,4 +1,4 @@
-# Dan-ShaRi GL(断捨離-GL aka dsrgl.js)
+# dan-shari-gl(断捨離-gl aka dsrgl.js)
 
 minimum webgl framework without other depedencies.
 
