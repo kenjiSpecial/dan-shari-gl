@@ -3,7 +3,7 @@
 minimum webgl framework without other depedencies.
 
 ## Examples
-[examples](https://kenjispecial.github.io/dan-shari-gl/)
+[dan-shari-gl examples](https://kenjispecial.github.io/dan-shari-gl/)
 
 ## Install
 
