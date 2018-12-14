@@ -363,7 +363,6 @@ float ShadowCalculation(vec4 fragPosLightSpace)
                         -lightSide, lightSide, 
                         light.nearPlane, light.farPlane
                         );
-            //lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
             dsr.mat4.lookAt( light.viewMatrix,light.lightPos, [0, 0, 0], [0, 1, 0]);
             dsr.mat4.multiply(light.spaceMatrix, light.projectionMatrix, light.viewMatrix);
 
@@ -445,17 +444,11 @@ float ShadowCalculation(vec4 fragPosLightSpace)
         function tick(){
             stats.update();
             time += 1/60;
-            
-            // light.lightPos[0] = 30 * Math.cos(time);
-            // light.lightPos[2] = 30 * Math.sin(time);
-            // dsr.mat4.lookAt( light.viewMatrix,light.lightPos, [0, 0, 0], [0, 1, 0]);
             dsr.mat4.multiply(light.spaceMatrix, light.projectionMatrix, light.viewMatrix);
 
-        
             gl.clearColor(0, 0, 0, 1);
             gl.enable(gl.DEPTH_TEST);
-            // gl.enable(gl.CULL_FACE);
-
+            
             gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
             gl.viewport(0, 0, shadowWidth, shadowWidth);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
