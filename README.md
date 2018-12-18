@@ -1,4 +1,4 @@
-# DanShaRiGL(断捨離-gl aka dsrgl.js)
+# DanShaRiGL(断捨離GL aka dsrgl.js)
 
 minimum webgl framework without other depedencies. it inherit [tubugl](https://github.com/kenjiSpecial/tubugl) framework philosophy without other depedencies.
 
