@@ -1,12 +1,12 @@
 {
   "name": "dan-shari-gl",
-  "version": "0.2.12",
+  "version": "0.3.0",
   "description": "minimum webgl framework",
   "main": "build/dsrgl.js",
   "min": "build/dsrgl.min.js",
   "libName": "dsr",
   "license": "MIT",
-  "repository": "kenjiSpecial/dan-sha-ri-gl",
+  "repository": "kenjiSpecial/dan-shari-gl",
   "scripts": {
     "build": "rollup -c",
     "start": "rollup --watch -c --configDebug",
@@ -31,5 +31,8 @@
     "rollup-plugin-node-resolve": "^3.3.0",
     "rollup-plugin-replace": "^2.1.0",
     "rollup-plugin-uglify": "3.0.0"
-  }
+  },
+  "browserslist": [
+    "last 1 chrome versions"
+  ]
 }

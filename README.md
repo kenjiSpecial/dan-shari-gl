@@ -1,11 +1,16 @@
-# dan-shari-gl(断捨離-gl aka dsrgl.js)
+# DanShaRiGL(断捨離-gl aka dsrgl.js)
 
-minimum webgl framework without other depedencies.
+minimum webgl framework without other depedencies. it inherit [tubugl](https://github.com/kenjiSpecial/tubugl) framework philosophy without other depedencies.
 
 ## Examples
+
 [dan-shari-gl examples](https://kenjispecial.github.io/dan-shari-gl/)
 
 ## Install
+
+`npm i dan-shari-gl`
+
+`yarn add dan-shari-gl`
 
 ## References
 
@@ -18,3 +23,4 @@ minimum webgl framework without other depedencies.
 - [ogl](https://github.com/oframe/ogl)
 - [tubugl](https://github.com/kenjiSpecial/tubugl)
 - [deck.gl](https://deck.gl/#/)
+- [filament](https://github.com/google/filament)

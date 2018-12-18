@@ -96,7 +96,8 @@ export function createProgram(gl, vertexShaderSrc, fragmentShaderSrc) {
 }
 
 /**
- * get uniform locations
+ * 
+ * create buffer and get location from program
  *
  * @param {WebGLRenderingContext} gl
  * @param {WebGLProgram} program
@@ -105,7 +106,7 @@ export function createProgram(gl, vertexShaderSrc, fragmentShaderSrc) {
  *
  * @returns {object} uniformLocation
  */
-export function createBuffer(gl, program, data, str) {
+export function createBufferWithLocation(gl, program, data, str) {
 	const buffer = gl.createBuffer();
 	const location = gl.getAttribLocation(program, str);
 
@@ -113,6 +114,22 @@ export function createBuffer(gl, program, data, str) {
 	gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
 
 	return { buffer, location };
+}
+
+/**
+ * 
+ * create buffer
+ * 
+ * @param {*} gl 
+ * @param {*} data 
+ */
+export function createBuffer(gl, data) {
+	const buffer = gl.createBuffer();
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+	gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
+	return buffer;
 }
 
 /**
