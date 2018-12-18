@@ -106,7 +106,8 @@
 	}
 
 	/**
-	 * get uniform locations
+	 * 
+	 * create buffer and get location from program
 	 *
 	 * @param {WebGLRenderingContext} gl
 	 * @param {WebGLProgram} program
@@ -115,7 +116,7 @@
 	 *
 	 * @returns {object} uniformLocation
 	 */
-	function createBuffer(gl, program, data, str) {
+	function createBufferWithLocation(gl, program, data, str) {
 		var buffer = gl.createBuffer();
 		var location = gl.getAttribLocation(program, str);
 
@@ -123,6 +124,22 @@
 		gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
 
 		return { buffer: buffer, location: location };
+	}
+
+	/**
+	 * 
+	 * create buffer
+	 * 
+	 * @param {*} gl 
+	 * @param {*} data 
+	 */
+	function createBuffer(gl, data) {
+		var buffer = gl.createBuffer();
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
+		return buffer;
 	}
 
 	/**
@@ -1602,12 +1619,13 @@
 		return OrthoCamera;
 	}(Camera);
 
-	console.log('[danshariGL] version: 0.2.12, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
+	console.log('[danshariGL] version: 0.3.0, %o', 'https://github.com/kenjiSpecial/dan-shari-gl');
 
 	exports.getUniformLocations = getUniformLocations;
 	exports.addLineNumbers = addLineNumbers;
 	exports.compileGLShader = compileGLShader;
 	exports.createProgram = createProgram;
+	exports.createBufferWithLocation = createBufferWithLocation;
 	exports.createBuffer = createBuffer;
 	exports.createIndex = createIndex;
 	exports.bindBuffer = bindBuffer;

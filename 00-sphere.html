@@ -41,7 +41,6 @@
     
     <div class="dsr-desc">
         <p class="dsr-p">#00 - rendering sphere</p>    
-        <p class="tubugl-p">See <a href="./index.html">more examples</a></p>
     </div>
 
 
@@ -100,8 +99,8 @@
             var { vertices, normals, indices } = dsr.getSphere(5, 32, 32);
             sphere.progoram = dsr.createProgram(gl, vertexShaderSrc, fragmentShaderSrc);
             sphere.buffers = {
-                position: dsr.createBuffer(gl, sphere.progoram, new Float32Array(vertices), 'position'),
-                normal: dsr.createBuffer(gl, sphere.progoram, new Float32Array(normals), 'normal'),
+                position: dsr.createBufferWithLocation(gl, sphere.progoram, new Float32Array(vertices), 'position'),
+                normal: dsr.createBufferWithLocation(gl, sphere.progoram, new Float32Array(normals), 'normal'),
                 index: dsr.createIndex(gl, new Uint16Array(indices))
             };
             sphere.matrix = {
@@ -151,7 +150,7 @@
             dsr.mat4.multiply(sphere.matrix.mvMatrix, camera.viewMatrix, sphere.matrix.modelMatrix);
             dsr.mat4.multiply(sphere.matrix.mvpMatrix, camera.projectionMatrix, sphere.matrix.mvMatrix);
         
-            gl.clearColor(0, 0, 0, 1);
+            gl.clearColor(1, 1, 1, 1);
             gl.enable(gl.DEPTH_TEST);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
