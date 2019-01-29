@@ -39,7 +39,27 @@ export class PerspectiveCamera extends Camera {
 	}
 
 	updatePerspective(width, height, fov, near, far) {
-		mat4.perspective(this.projectionMatrix, (fov / 180) * Math.PI, width / height, near, far);
+		this.aspect = width / height;
+		this.fov = fov;
+		this.near = near;
+		this.far = far;
+		this.fov = fov;
+
+		const angle = (this.fov / 180) * Math.PI;
+
+		mat4.perspective(this.projectionMatrix, angle, this.aspect, this.near, this.far);
+	}
+
+	/**
+	 *
+	 * @param {number} width width of gl context
+	 * @param {number} height height of gl context
+	 */
+	updateAspect(width, height) {
+		this.aspect = width / height;
+		const angle = (this.fov / 180) * Math.PI;
+		
+		mat4.perspective(this.projectionMatrix, angle, this.aspect, this.near, this.far);
 	}
 }
 
