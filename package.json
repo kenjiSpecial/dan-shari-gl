@@ -1,9 +1,10 @@
 {
   "name": "dan-shari-gl",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "minimum webgl framework",
-  "main": "build/dsrgl.js",
-  "min": "build/dsrgl.min.js",
+  "build": "build/dsrgl.js",
+  "buildMin": "build/dsrgl.min.js",
+  "main": "src",
   "libName": "dsr",
   "license": "MIT",
   "repository": "kenjiSpecial/dan-shari-gl",
