@@ -1,0 +1,12 @@
+export declare const FLOAT: number;
+export declare const RGB: number;
+export declare const NEAREST: number;
+export declare const LINEAR: number;
+export declare const NEAREST_MIPMAP_NEAREST: number;
+export declare const LINEAR_MIPMAP_NEAREST: number;
+export declare const NEAREST_MIPMAP_LINEAR: number;
+export declare const LINEAR_MIPMAP_LINEAR: number;
+export declare const CLAMP_TO_EDGE: number;
+export declare const REPEAT: number;
+export declare const DEPTH_COMPONENT16: number;
+export declare const UNSIGNED_BYTE: number;

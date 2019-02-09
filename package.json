@@ -1,6 +1,6 @@
 {
   "name": "dan-shari-gl",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "minimum webgl framework",
   "keywords": [],
   "main": "dist/dan-shari-gl.umd.js",
@@ -21,7 +21,8 @@
   "scripts": {
     "lint": "tslint  --project tsconfig.json -t codeFrame 'src/**/*.ts' 'test/**/*.ts'",
     "prebuild": "rimraf dist",
-    "build": "tsc --module commonjs && rollup -c rollup.config.ts && typedoc --out docs --target es6 --theme minimal --mode file src",
+    "build": "tsc --module commonjs && rollup -c rollup.config.ts && typedoc --out docs/documents --target es6 --theme minimal --mode file src",
+    "copy": "copyfiles -f dist/*.js docs/examples/lib",
     "start": "rollup -c rollup.config.ts -w",
     "test": "jest --coverage",
     "test:watch": "jest --coverage --watch",
