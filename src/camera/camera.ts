@@ -3,10 +3,10 @@ import { Vector3 } from '../interfaces/interface';
 
 export class Camera {
 	public position: Vector3 = { x: 0, y: 0, z: 0 };
-	private type: string;
-	private lookAtPosition: Vector3 = { x: 0, y: 0, z: 0 };
-	protected viewMatrix: mat4 = mat4.create();
-	protected projectionMatrix: mat4 = mat4.create();
+	public type: string;
+	public lookAtPosition: Vector3 = { x: 0, y: 0, z: 0 };
+	public viewMatrix: mat4 = mat4.create();
+	public projectionMatrix: mat4 = mat4.create();
 
 	constructor(type: string = 'camera') {
 		this.type = type;
