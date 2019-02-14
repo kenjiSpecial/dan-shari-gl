@@ -1,1 +1,1 @@
-#### this library is been developed based on [alexjoverm/typescript-library-starter](alexjoverm/typescript-library-starter) 
+#### this library is being developed based on [alexjoverm/typescript-library-starter](alexjoverm/typescript-library-starter) 
