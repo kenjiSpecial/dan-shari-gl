@@ -3,47 +3,40 @@
  *
  * @param url url to load json file
  */
-export function getAjaxJson(url: string) {
-	return new Promise((resolve: (val: string) => void, reject: (val: number) => void) => {
-		// the resolve / reject functions control the fate of the promise
-		const xhr = new XMLHttpRequest();
-		xhr.open('GET', url, true);
-		//    xhr.responseType = 'json';
+export function getAjaxJson(url: string, callback: Function) {
+	const xhr = new XMLHttpRequest();
+	xhr.open('GET', url, true);
 
-		xhr.onreadystatechange = () => {
-			if (xhr.readyState === 4) {
-				if (xhr.status === 200) {
-					const resp: string = xhr.responseText;
-					const respJson = JSON.parse(resp);
-					resolve(respJson);
-				} else {
-					reject(xhr.status);
-				}
+	xhr.onreadystatechange = () => {
+		if (xhr.readyState === 4) {
+			if (xhr.status === 200) {
+				const resp: string = xhr.responseText;
+				const respJson = JSON.parse(resp);
+				callback(respJson);
+				// resolve(respJson);
 			} else {
-				reject(xhr.status);
+				// reject(xhr.status);
 			}
-		};
+		} else {
+			// reject(xhr.status);
+		}
+	};
 
-		xhr.send();
-	});
+	xhr.send();
 }
 
 /**
  *
  * @param imageUrl
  */
-export function getImage(imageUrl: string) {
-	return new Promise(
-		(resolve: (val: HTMLImageElement) => void, reject: (val: string) => void) => {
-			const image: HTMLImageElement = new Image();
-			image.onload = () => {
-				resolve(image);
-			};
-			image.onerror = () => {
-				reject('image is not loaded');
-			};
+export function getImage(imageUrl: string, callback: Function) {
+	const image: HTMLImageElement = new Image();
+	image.onload = () => {
+		callback(image);
+	};
+	image.onerror = () => {
+		console.warn(`image(${imageUrl}) load err`);
+	};
 
-			image.src = imageUrl;
-		}
-	);
+	image.src = imageUrl;
 }

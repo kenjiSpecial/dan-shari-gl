@@ -34,7 +34,15 @@ export class Camera {
 	}
 }
 
+// ---------------------
+
 export class PerspectiveCamera extends Camera {
+	private width: number;
+	private height: number;
+	private fov: number;
+	private near: number;
+	private far: number;
+
 	constructor(
 		width: number,
 		height: number,
@@ -43,21 +51,57 @@ export class PerspectiveCamera extends Camera {
 		far: number = 1000
 	) {
 		super('perspective');
-		this.updatePerspective(width, height, fov, near, far);
+
+		this.width = width;
+		this.height = height;
+		this.fov = fov;
+		this.near = near;
+		this.far = far;
+
+		this.updatePerspective();
 	}
 
-	public updatePerspective(
-		width: number,
-		height: number,
-		fov: number,
-		near: number,
-		far: number
-	) {
-		mat4.perspective(this.projectionMatrix, (fov / 180) * Math.PI, width / height, near, far);
+	public updatePerspective() {
+		mat4.perspective(
+			this.projectionMatrix,
+			(this.fov / 180) * Math.PI,
+			this.width / this.height,
+			this.near,
+			this.far
+		);
+	}
+
+	public updateSize(width: number, height: number) {
+		this.width = width;
+		this.height = height;
+
+		this.updatePerspective();
+	}
+
+	public updateFocus(near: number, far: number) {
+		if (near) this.near = near;
+		if (far) this.far = far;
+
+		this.updatePerspective();
+	}
+
+	public updatefov(angle: number) {
+		this.fov = angle;
+
+		this.updatePerspective();
 	}
 }
 
+// ---------------------
+
 export class OrthoCamera extends Camera {
+	private left: number;
+	private right: number;
+	private bottom: number;
+	private top: number;
+	private near: number;
+	private far: number;
+
 	constructor(
 		left: number,
 		right: number,
@@ -67,17 +111,42 @@ export class OrthoCamera extends Camera {
 		far: number
 	) {
 		super('ortho');
-		this.updatePerspective(left, right, bottom, top, near, far);
+
+		this.left = left;
+		this.right = right;
+		this.bottom = bottom;
+		this.top = top;
+		this.near = near;
+		this.far = far;
+
+		this.updatePerspective();
 	}
 
-	public updatePerspective(
-		left: number,
-		right: number,
-		bottom: number,
-		top: number,
-		near: number,
-		far: number
-	) {
-		mat4.ortho(this.projectionMatrix, left, right, bottom, top, near, far);
+	public updateSize(left: number, right: number, bottom: number, top: number) {
+		this.left = left;
+		this.right = right;
+		this.bottom = bottom;
+		this.top = top;
+
+		this.updatePerspective();
+	}
+
+	public updateFocus(near: number, far: number) {
+		if (near) this.near = near;
+		if (far) this.far = far;
+
+		this.updatePerspective();
+	}
+
+	public updatePerspective() {
+		mat4.ortho(
+			this.projectionMatrix,
+			this.left,
+			this.right,
+			this.bottom,
+			this.top,
+			this.near,
+			this.far
+		);
 	}
 }
