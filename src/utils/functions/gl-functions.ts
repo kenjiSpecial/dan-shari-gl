@@ -7,7 +7,7 @@ interface IUniformObject {
 export function getUniformLocations(
 	gl: WebGLRenderingContext,
 	program: WebGLProgram,
-	arr: []
+	arr: string[]
 ): IUniformObject {
 	const locations: IUniformObject = {};
 
@@ -81,7 +81,11 @@ export function createProgram(
 	const program = gl.createProgram() as WebGLProgram;
 
 	const vertexShader = compileGLShader(gl, gl.VERTEX_SHADER, vertexShaderSrc) as WebGLShader;
-	const fragmentShader = compileGLShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSrc) as WebGLShader;
+	const fragmentShader = compileGLShader(
+		gl,
+		gl.FRAGMENT_SHADER,
+		fragmentShaderSrc
+	) as WebGLShader;
 
 	gl.attachShader(program, vertexShader);
 	gl.attachShader(program, fragmentShader);

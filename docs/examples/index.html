@@ -1,0 +1,319 @@
+<html>
+	<title>DEV</title>
+	<meta charset="UTF-8" />
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" />
+	<link href="https://fonts.googleapis.com/css?family=Sawarabi+Gothic" rel="stylesheet" />
+
+	<style>
+		* {
+			margin: 0;
+		}
+
+		.wf-sawarabigothic {
+			font-family: 'Sawarabi Gothic';
+		}
+
+		html,
+		body {
+			font-family: 'Roboto', sans-serif;
+			width: 100%;
+			height: 100%;
+		}
+		h3 {
+			/* margin-bottom: 20px; */
+		}
+
+		.sub-title {
+			font-size: 12px;
+			margin-top: 5px;
+			margin-bottom: 20px;
+		}
+
+		h3,
+		h4,
+		h5 {
+			font-weight: 400;
+		}
+
+		ul {
+			padding-inline-start: 0;
+		}
+
+		li {
+			list-style: none;
+		}
+
+		.side {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 240px;
+			height: 100%;
+			overflow: auto;
+		}
+
+		#viewer {
+			position: absolute;
+			width: calc(100% - 240px);
+			height: 100%;
+			top: 0;
+			left: 240px;
+		}
+
+		.side ul {
+			margin-bottom: 30px;
+		}
+
+		.side li {
+			/* margin-bottom: 20px; */
+			font-size: 12px;
+			line-height: 20px;
+			color: #cccccc;
+		}
+
+		.side h4 {
+			font-size: 15px;
+			line-height: 15px;
+			margin-bottom: 12px;
+		}
+
+		.side a {
+			text-decoration: none;
+			color: #2558b8;
+		}
+
+		.side a:hover {
+			text-decoration: underline;
+		}
+
+		.side a.selected {
+			color: #000000;
+			font-weight: 800;
+		}
+
+		.side a.selected:hover {
+			text-decoration: none;
+		}
+
+		.side-content {
+			margin-top: 30px;
+			margin-left: 30px;
+			margin-bottom: 50px;
+		}
+
+		h4.external {
+			color: #cccccc;
+		}
+
+		#viewSrcButton {
+			position: fixed;
+			bottom: 20px;
+			right: 20px;
+			padding: 8px;
+			color: #fff;
+			background-color: #dddddd;
+			opacity: 1;
+			border-radius: 50%;
+		}
+
+		#viewSrcButton:hover {
+			cursor: pointer;
+			opacity: 0.8;
+		}
+	</style>
+	<meta
+		name="viewport"
+		content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+	/>
+
+	<body>
+		<!-- <div class="app-main"> -->
+
+		<div class="side">
+			<div class="side-content">
+				<h3>DanShaRiGL</h3>
+				<div class="sub-title wf-sawarabigothic">断捨離GL</div>
+
+				<h4>Geometry</h4>
+				<ul>
+					<li><a class="viewer-link" href="./00-sphere.html">sphere</a></li>
+				</ul>
+				<h4>Camera</h4>
+				<ul>
+					<li>camera controller</li>
+				</ul>
+
+				<h4>Raycast</h4>
+				<ul>
+					<li>interaction</li>
+				</ul>
+
+				<h4>Framebuffer</h4>
+				<ul>
+					<li>Render to texture</li>
+					<li><a class="viewer-link" href="./02-shadow.html">shadow</a></li>
+					<li>Depth of Field</li>
+					<li>Bloom</li>
+					<li>Reflections</li>
+					<li>Shadow maps</li>
+					<li>Distortion (refraction)</li>
+				</ul>
+
+				<h4>Texture</h4>
+				<ul>
+					<li><a href="./01-text.html" class="viewer-link">Alphabet Text</a></li>
+					<li>Japanese Text</li>
+					<li>Compress Text</li>
+				</ul>
+
+				<h4>GPGPU</h4>
+				<ul>
+					<li>Particles</li>
+				</ul>
+
+				<h4>Material</h4>
+
+				<h4>Stencil</h4>
+				<ul>
+					<li>Mirror</li>
+				</ul>
+
+				<h4 class="external">
+					<i class="external">
+						<!--
+							<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
+						-->
+						<svg
+							aria-hidden="true"
+							data-prefix="fas"
+							data-icon="external-link-alt"
+							class="svg-inline--fa fa-external-link-alt fa-w-18"
+							role="img"
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 576 512"
+							width="16px"
+						>
+							<path
+								fill="currentColor"
+								d="M576 24v127.984c0 21.461-25.96 31.98-40.971 16.971l-35.707-35.709-243.523 243.523c-9.373 9.373-24.568 9.373-33.941 0l-22.627-22.627c-9.373-9.373-9.373-24.569 0-33.941L442.756 76.676l-35.703-35.705C391.982 25.9 402.656 0 424.024 0H552c13.255 0 24 10.745 24 24zM407.029 270.794l-16 16A23.999 23.999 0 0 0 384 303.765V448H64V128h264a24.003 24.003 0 0 0 16.97-7.029l16-16C376.089 89.851 365.381 64 344 64H48C21.49 64 0 85.49 0 112v352c0 26.51 21.49 48 48 48h352c26.51 0 48-21.49 48-48V287.764c0-21.382-25.852-32.09-40.971-16.97z"
+							></path>
+						</svg>
+					</i>
+					Sketches
+				</h4>
+
+				<div><a href="">GitHub</a></div>
+			</div>
+		</div>
+
+		<iframe id="viewer" frameborder="0"></iframe>
+		<!-- </div> -->
+	</body>
+
+	<script>
+		function extractQuery() {
+			var p = window.location.search.indexOf('?q=');
+			if (p !== -1) {
+				return window.location.search.substr(3);
+			}
+			return '';
+		}
+
+		var panel = document.getElementById('panel');
+		var content = document.getElementById('content');
+		var viewer = document.getElementById('viewer');
+
+		var filterInput = document.getElementById('filterInput');
+		var clearFilterButton = document.getElementById('clearFilterButton');
+
+		var viewSrcButton = document.createElement('a');
+		viewSrcButton.id = 'viewSrcButton';
+		viewSrcButton.target = '_blank';
+		viewSrcButton.innerHTML =
+			'<img src="https://img.icons8.com/material/24/000000/source-code.png">';
+		viewSrcButton.style.display = 'none';
+		document.body.appendChild(viewSrcButton);
+
+		var links = document.getElementsByClassName('viewer-link');
+
+		// var links = {};
+		var selected = null;
+
+		for (let ii = 0; ii < links.length; ii++) {
+			var link = links[ii];
+			link.addEventListener('click', function(event) {
+				if (event.button !== 0 || event.ctrlKey || event.altKey || event.metaKey) return;
+
+				event.preventDefault();
+
+				loadFile(event.srcElement);
+			});
+		}
+
+		function loadFile(element) {
+			selectFile(element);
+			viewer.src = element.href;
+		}
+
+		function selectFile(element) {
+			if (selected !== null) selected.classList.remove('selected');
+			selected = element;
+
+			selected.classList.add('selected');
+
+			element.classList.add('selected');
+
+			fileName = element
+				.getAttribute('href')
+				.split('/')[1]
+				.split('.')[0];
+			window.location.hash = fileName;
+			viewer.focus();
+
+			// panel.classList.add('collapsed');
+
+			// Reveal "View source" button and set attributes to this example
+			viewSrcButton.style.display = '';
+			viewSrcButton.href =
+				'https://github.com/kenjiSpecial/dan-shari-gl/blob/master/examples/' +
+				fileName +
+				'.html';
+		}
+
+		if (window.location.hash == '') {
+			const random = parseInt(links.length * Math.random());
+			loadFile(links[random]);
+		} else {
+			var fromHash = window.location.hash.substr(1);
+			console.log(fromHash);
+
+			for (let ii = 0; ii < links.length; ii++) {
+				var link = links[ii];
+
+				fileName = link
+					.getAttribute('href')
+					.split('/')[1]
+					.split('.')[0];
+
+				console.log(fileName == fromHash);
+
+				if (fileName == fromHash) {
+					loadFile(link);
+					break;
+				}
+			}
+			// window.location.hash = fileName;
+		}
+	</script>
+	<!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-42485016-2"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag() {
+			dataLayer.push(arguments);
+		}
+		gtag('js', new Date());
+
+		gtag('config', 'UA-42485016-2');
+	</script>
+</html>
