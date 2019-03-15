@@ -113,7 +113,7 @@ export function updateImageTexture(
 export function activeTexture(
 	gl: WebGLRenderingContext,
 	texture: WebGLTexture,
-	uniformLocation: number,
+	uniformLocation: WebGLUniformLocation,
 	textureNum: number = 0
 ) {
 	const activeTextureNum = gl.TEXTURE0 + textureNum;
