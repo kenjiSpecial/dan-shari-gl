@@ -14,3 +14,5 @@ export * from './camera/camera';
 
 // sub compoents
 export * from './subComponents/cameracontroller';
+export * from './subComponents/textLayout';
+export * from './subComponents/textRendering';

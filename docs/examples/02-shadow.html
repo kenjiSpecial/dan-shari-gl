@@ -48,10 +48,11 @@
 		<script src="./vendors/dat.gui.min.js"></script>
 		<script src="./vendors/stats.min.js"></script>
 		<script src="./vendors/TweenMax.js"></script>
+		<script src="./vendors/gl-matrix.js"></script>
 
-		<script src="./vendors/build/dsrgl.js"></script>
+		<script src="./lib/dan-shari-gl.umd.js"></script>
+
 		<!-- plugin -->
-		<script src="./vendors/build/plugin/camera-controller.js"></script>
 
 		<script>
 			const vertexShaderSrc = `
@@ -240,7 +241,7 @@
 
 			var jsonUrl = './assets/material-ball.json';
 
-			dsr.getAjaxJson(jsonUrl).then(data => {
+			dsr.getAjaxJson(jsonUrl, function(data){
 				materialBallData = data;
 				// console.log(data);
 				init();
@@ -281,13 +282,13 @@
 						),
 						index: dsr.createIndex(gl, new Uint16Array(indices))
 					};
-					let quat = dsr.quat.create();
-					let mat = dsr.mat4.create();
-					dsr.mat4.fromRotationTranslationScale(mat, quat, [5, 0, 0], [1, 1, 1]);
+					let rot = quat.create();
+					let mat = mat4.create();
+					mat4.fromRotationTranslationScale(mat, rot, [5, 0, 0], [1, 1, 1]);
 					sphere.matrix = {
 						modelMatrix: mat,
-						mvMatrix: dsr.mat4.create(),
-						mvpMatrix: dsr.mat4.create()
+						mvMatrix: mat4.create(),
+						mvpMatrix: mat4.create()
 					};
 					sphere.uniforms = dsr.getUniformLocations(gl, sphere.program, [
 						'uModelMatrix',
@@ -321,15 +322,15 @@
 						),
 						index: dsr.createIndex(gl, new Uint16Array(indices))
 					};
-					let quat = dsr.quat.create();
-					dsr.quat.rotateX(quat, quat, Math.PI / 2);
-					let mat = dsr.mat4.create();
-					dsr.mat4.fromRotationTranslationScale(mat, quat, [0, -3, 0], [100, 100, 100]);
+					let rot = quat.create();
+					quat.rotateX(rot, rot, Math.PI / 2);
+					let mat = mat4.create();
+					mat4.fromRotationTranslationScale(mat, rot, [0, -3, 0], [100, 100, 100]);
 
 					plane.matrix = {
 						modelMatrix: mat,
-						mvMatrix: dsr.mat4.create(),
-						mvpMatrix: dsr.mat4.create()
+						mvMatrix: mat4.create(),
+						mvpMatrix: mat4.create()
 					};
 					plane.uniforms = dsr.getUniformLocations(gl, program, [
 						'uModelMatrix',
@@ -364,13 +365,13 @@
 						),
 						index: dsr.createIndex(gl, new Uint16Array(indices))
 					};
-					let quat = dsr.quat.create();
-					let mat = dsr.mat4.create();
-					dsr.mat4.fromRotationTranslationScale(mat, quat, [-5, 0.9, 0], [0.5, 0.5, 0.5]);
+					let rot = quat.create();
+					let mat = mat4.create();
+					mat4.fromRotationTranslationScale(mat, rot, [-5, 0.9, 0], [0.5, 0.5, 0.5]);
 					materialBall.matrix = {
 						modelMatrix: mat,
-						mvMatrix: dsr.mat4.create(),
-						mvpMatrix: dsr.mat4.create()
+						mvMatrix: mat4.create(),
+						mvpMatrix: mat4.create()
 					};
 					materialBall.uniforms = dsr.getUniformLocations(gl, program, [
 						'uModelMatrix',
@@ -415,15 +416,15 @@
 				console.log(simpleDepthUniforms);
 				light = {
 					lightPos: [0, 30, 40],
-					projectionMatrix: dsr.mat4.create(),
-					viewMatrix: dsr.mat4.create(),
-					spaceMatrix: dsr.mat4.create(),
+					projectionMatrix: mat4.create(),
+					viewMatrix: mat4.create(),
+					spaceMatrix: mat4.create(),
 					nearPlane: 1,
 					farPlane: 100
 				};
 
 				const lightSide = 30;
-				dsr.mat4.ortho(
+				mat4.ortho(
 					light.projectionMatrix,
 					-lightSide,
 					lightSide,
@@ -432,8 +433,8 @@
 					light.nearPlane,
 					light.farPlane
 				);
-				dsr.mat4.lookAt(light.viewMatrix, light.lightPos, [0, 0, 0], [0, 1, 0]);
-				dsr.mat4.multiply(light.spaceMatrix, light.projectionMatrix, light.viewMatrix);
+				mat4.lookAt(light.viewMatrix, light.lightPos, [0, 0, 0], [0, 1, 0]);
+				mat4.multiply(light.spaceMatrix, light.projectionMatrix, light.viewMatrix);
 
 				depthMapFBO = gl.createFramebuffer();
 				gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
@@ -517,7 +518,7 @@
 			function tick() {
 				stats.update();
 				time += 1 / 60;
-				dsr.mat4.multiply(light.spaceMatrix, light.projectionMatrix, light.viewMatrix);
+				mat4.multiply(light.spaceMatrix, light.projectionMatrix, light.viewMatrix);
 
 				gl.clearColor(1, 1, 1, 1);
 				gl.enable(gl.DEPTH_TEST);
@@ -607,8 +608,8 @@
 
 			function renderMesh() {
 				if (sphere) {
-					// dsr.mat4.multiply(sphere.matrix.mvMatrix, camera.viewMatrix, sphere.matrix.modelMatrix);
-					// dsr.mat4.multiply(sphere.matrix.mvpMatrix, camera.projectionMatrix, sphere.matrix.mvMatrix);
+					// mat4.multiply(sphere.matrix.mvMatrix, camera.viewMatrix, sphere.matrix.modelMatrix);
+					// mat4.multiply(sphere.matrix.mvpMatrix, camera.projectionMatrix, sphere.matrix.mvMatrix);
 
 					gl.useProgram(sphere.program);
 
@@ -660,12 +661,12 @@
 				}
 
 				if (plane) {
-					dsr.mat4.multiply(
+					mat4.multiply(
 						plane.matrix.mvMatrix,
 						camera.viewMatrix,
 						plane.matrix.modelMatrix
 					);
-					dsr.mat4.multiply(
+					mat4.multiply(
 						plane.matrix.mvpMatrix,
 						camera.projectionMatrix,
 						plane.matrix.mvMatrix
@@ -717,12 +718,12 @@
 				}
 
 				if (materialBall) {
-					dsr.mat4.multiply(
+					mat4.multiply(
 						materialBall.matrix.mvMatrix,
 						camera.viewMatrix,
 						materialBall.matrix.modelMatrix
 					);
-					dsr.mat4.multiply(
+					mat4.multiply(
 						materialBall.matrix.mvpMatrix,
 						camera.projectionMatrix,
 						materialBall.matrix.mvMatrix

@@ -45,14 +45,12 @@
 		<script src="./vendors/dat.gui.min.js"></script>
 		<script src="./vendors/stats.min.js"></script>
 		<script src="./vendors/TweenMax.js"></script>
+		<script src="./vendors/gl-matrix.js"></script>
 
-		<script src="./vendors/build/dsrgl.js"></script>
-		<!-- plugin -->
-		<!-- <script src="./vendors/build/plugin/camera-controller.js"></script> -->
-		<!-- <script src="./vendors/build/plugin/text-layout.js"></script> -->
-		<!-- <script src="./vendors/build/plugin/text-rendering.js"></script> -->
-
+		<script src="./lib/dan-shari-gl.umd.js"></script>
+		
 		<script>
+			console.log(dsr);
 			const vertexShaderSrc = `
 						        precision highp float;
 						
@@ -74,7 +72,7 @@
 						        varying vec2 vUv;
 						
 						        void main(){
-						            gl_FragColor = texture2D(uTexture, vUv);
+									gl_FragColor = texture2D(uTexture, vUv);
 						        }
 						        `;
 
@@ -144,11 +142,10 @@
 			let textLayout;
 			let webglTextMesh, textMesh;
 
-			// tick();
 			startAssetsLoad();
 
 			function startAssetsLoad() {
-				dsr.getImage('./assets/fonts/roboto.png').then(image => {
+				dsr.getImage('./assets/fonts/roboto.png', function(image) {
 					assetCnt++;
 					font.image = image;
 
@@ -158,7 +155,7 @@
 					}
 				});
 
-				dsr.getAjaxJson('./assets/fonts/roboto.json').then(data => {
+				dsr.getAjaxJson('./assets/fonts/roboto.json', function(data) {
 					assetCnt++;
 					font.fontData = data;
 					textLayout = new dsr.TextLayout(data, text);
@@ -190,16 +187,15 @@
 				var { vertices, uvs, indices } = webglTextRenderging;
 
 				var program = dsr.createProgram(gl, vertexShaderSrc, fragmentShaderSrc);
-				var fontTexture = dsr.createImageTexture(gl, font.image);
 
-				var modelMatrix = dsr.mat4.create();
-				dsr.mat4.fromTranslation(modelMatrix, [
+				var modelMatrix = mat4.create();
+				mat4.fromTranslation(modelMatrix, [
 					-viewportWidth / 2 + textWebGL.width / 2 + 20,
 					-viewportHeight / 2 + 40 + textWebGL.height / 2,
 					0
 				]);
 
-				var fontTexture = dsr.createImageTexture(gl, font.image, gl.RGBA, true);
+				var fontTexture = dsr.createImageTexture(gl, font.image, gl.RGBA, false);
 
 				webglTextMesh = {
 					program: program,
@@ -210,8 +206,8 @@
 					},
 					matrix: {
 						modelMatrix: modelMatrix,
-						mvMatrix: dsr.mat4.create(),
-						mvpMatrix: dsr.mat4.create()
+						mvMatrix: mat4.create(),
+						mvpMatrix: mat4.create()
 					},
 					uniforms: dsr.getUniformLocations(gl, program, ['uMVPMatrix', 'uTexture']),
 					font: fontTexture
@@ -229,9 +225,9 @@
 						index: dsr.createIndex(gl, indices)
 					},
 					matrix: {
-						modelMatrix: dsr.mat4.create(),
-						mvMatrix: dsr.mat4.create(),
-						mvpMatrix: dsr.mat4.create()
+						modelMatrix: mat4.create(),
+						mvMatrix: mat4.create(),
+						mvpMatrix: mat4.create()
 					},
 					uniforms: webglTextMesh.uniforms,
 					font: fontTexture
@@ -295,23 +291,23 @@
 			}
 
 			function renderGl() {
-				dsr.mat4.multiply(
+				mat4.multiply(
 					webglTextMesh.matrix.mvMatrix,
 					camera.viewMatrix,
 					webglTextMesh.matrix.modelMatrix
 				);
-				dsr.mat4.multiply(
+				mat4.multiply(
 					webglTextMesh.matrix.mvpMatrix,
 					camera.projectionMatrix,
 					webglTextMesh.matrix.mvMatrix
 				);
 
-				dsr.mat4.multiply(
+				mat4.multiply(
 					textMesh.matrix.mvMatrix,
 					camera.viewMatrix,
 					textMesh.matrix.modelMatrix
 				);
-				dsr.mat4.multiply(
+				mat4.multiply(
 					textMesh.matrix.mvpMatrix,
 					camera.projectionMatrix,
 					textMesh.matrix.mvMatrix
