@@ -1,12 +1,15 @@
-import TweenLite from 'gsap';
+import { Camera } from '../camera/camera';
+import { vec3 } from 'gl-matrix';
+import { clamp } from '../math/math';
 
 class DampedAction {
+	private value: number = 0.0;
+	private damping: number;
 	constructor() {
-		this.value = 0.0;
 		this.damping = 0.85;
 	}
 
-	addForce(force) {
+	addForce(force: number) {
 		this.value += force;
 	}
 
@@ -28,19 +31,67 @@ class DampedAction {
 }
 
 export class CameraController {
-	constructor(camera, domElement = document.body) {
+	private camera: Camera;
+	private domElement: HTMLElement;
+	private target: vec3 = vec3.create();
+	private minDistance: number = 0;
+	private maxDistance: number = Infinity;
+	private isEnabled: boolean = true;
+	private isDamping: boolean;
+	private dampingFactor: number;
+	private isZoom: boolean;
+	private zoomSpeed: number;
+	private isRotate: boolean;
+	private rotateSpeed: number;
+	private isPan: boolean;
+	private keyPanSpeed: number;
+	private enableKeys: boolean;
+	private keys: {
+		LEFT: string;
+		UP: string;
+		RIGHT: string;
+		BOTTOM: string;
+		SHIFT: string;
+	};
+	private originTarget: vec3;
+	private originPosition: vec3;
+	private targetXDampedAction: DampedAction = new DampedAction();
+	private targetYDampedAction: DampedAction = new DampedAction();
+	private targetZDampedAction: DampedAction = new DampedAction();
+	private targetThetaDampedAction: DampedAction = new DampedAction();
+	private targetPhiDampedAction: DampedAction = new DampedAction();
+	private targetRadiusDampedAction: DampedAction = new DampedAction();
+	private _isShiftDown = false;
+	private _rotateStart = {
+		x: 9999,
+		y: 9999
+	};
+	private _rotateEnd = {
+		x: 9999,
+		y: 9999
+	};
+	private _roatteDelta = {
+		x: 9999,
+		y: 9999
+	};
+	private _spherical: {
+		radius: number;
+		theta: number;
+		phi: number;
+	};
+	private _zoomDistanceEnd: number = 0;
+	private _zoomDistance: number = 0;
+	private state: string = '';
+	private loopId: number = 0;
+	private _panStart = { x: 0, y: 0 };
+	private _panDelta = { x: 0, y: 0 };
+	private _panEnd = { x: 0, y: 0 };
+	constructor(camera: Camera, domElement = document.body) {
 		if (!camera) {
 			console.error('camera is undefined');
 		}
 		this.camera = camera;
 		this.domElement = domElement;
-
-		this.target = vec3.create();
-
-		this.minDistance = 0;
-		this.maxDistance = Infinity;
-
-		this.isEnabled = true;
 
 		// Set to true to enable damping (inertia)
 		// If damping is enabled, you must call controls.update() in your animation loop
@@ -65,11 +116,11 @@ export class CameraController {
 
 		// The four arrow keys
 		this.keys = {
-			LEFT: 37,
-			UP: 38,
-			RIGHT: 39,
-			BOTTOM: 40,
-			SHIFT: 16
+			LEFT: '37',
+			UP: '38',
+			RIGHT: '39',
+			BOTTOM: '40',
+			SHIFT: '16'
 		};
 
 		// for reset
@@ -78,48 +129,17 @@ export class CameraController {
 		this.originPosition[0] = camera.position.x;
 		this.originPosition[1] = camera.position.x;
 		this.originPosition[2] = camera.position.x;
-		// Vector3(
-		// 	this.camera.position.x,
-		// 	this.camera.position.y,
-		// 	this.camera.position.z
-		// );
-
-		this.targetXDampedAction = new DampedAction();
-		this.targetYDampedAction = new DampedAction();
-		this.targetZDampedAction = new DampedAction();
-		this.targetThetaDampedAction = new DampedAction();
-		this.targetPhiDampedAction = new DampedAction();
-		this.targetRadiusDampedAction = new DampedAction();
-
-		this._isShiftDown = false;
-
-		this._rotateStart = {
-			x: null,
-			y: null
-		};
-		this._rotateEnd = {
-			x: null,
-			y: null
-		};
-		this._roatteDelta = {
-			x: null,
-			y: null
-		};
 
 		let dX = this.camera.position.x;
 		let dY = this.camera.position.y;
 		let dZ = this.camera.position.z;
 		let radius = Math.sqrt(dX * dX + dY * dY + dZ * dZ);
 		let theta = Math.atan2(this.camera.position.x, this.camera.position.z); // equator angle around y-up axis
-		let phi = Math.acos(math.clamp(this.camera.position.y / radius, -1, 1)); // polar angle
+		let phi = Math.acos(clamp(this.camera.position.y / radius, -1, 1)); // polar angle
 		this._spherical = {
 			radius: radius,
 			theta: theta,
 			phi: phi
-		};
-
-		this._pan = {
-			axis: {}
 		};
 
 		this._bindEvens();
@@ -132,7 +152,6 @@ export class CameraController {
 		this.domElement.addEventListener('wheel', this._mouseWheelHandler, false);
 
 		this.domElement.addEventListener('touchstart', this._touchStartHandler, false);
-		this.domElement.addEventListener('touchend', this._touchEndHandler, false);
 		this.domElement.addEventListener('touchmove', this._touchMoveHandler, false);
 
 		window.addEventListener('keydown', this._onKeyDownHandler, false);
@@ -142,22 +161,22 @@ export class CameraController {
 		this.domElement.removeEventListener('contextmenu', this._contextMenuHandler, false);
 		this.domElement.removeEventListener('mousedown', this._mouseDownHandler, false);
 		this.domElement.removeEventListener('wheel', this._mouseWheelHandler, false);
-		this.domElement.removedEventListener('mousemove', this._mouseMoveHandler, false);
+		this.domElement.removeEventListener('mousemove', this._mouseMoveHandler, false);
 		window.removeEventListener('mouseup', this._mouseUpHandler, false);
 
 		this.domElement.removeEventListener('touchstart', this._touchStartHandler, false);
-		this.domElement.removeEventListener('touchend', this._touchEndHandler, false);
 		this.domElement.removeEventListener('touchmove', this._touchMoveHandler, false);
 
 		window.removeEventListener('keydown', this._onKeyDownHandler, false);
 		window.removeEventListener('keydown', this._onKeyUpHandler, false);
 	}
 	startTick() {
-		TweenLite.ticker.addEventListener('tick', this.tick, this);
+		this.loopId = requestAnimationFrame(this.tick);
 	}
 	tick() {
 		this.updateDampedAction();
 		this.updateCamera();
+		this.loopId = requestAnimationFrame(this.tick);
 	}
 	updateDampedAction() {
 		this.target[0] += this.targetXDampedAction.update();
@@ -170,7 +189,7 @@ export class CameraController {
 	}
 	updateCamera() {
 		let s = this._spherical;
-		var sinPhiRadius = Math.sin(s.phi) * s.radius;
+		let sinPhiRadius = Math.sin(s.phi) * s.radius;
 
 		this.camera.position.x = sinPhiRadius * Math.sin(s.theta) + this.target[0];
 		this.camera.position.y = Math.cos(s.phi) * s.radius + this.target[1];
@@ -185,6 +204,7 @@ export class CameraController {
 		this.camera.updateViewMatrix();
 	}
 	_bindEvens() {
+		this.tick = this.tick.bind(this);
 		this._contextMenuHandler = this._contextMenuHandler.bind(this);
 		this._mouseDownHandler = this._mouseDownHandler.bind(this);
 		this._mouseWheelHandler = this._mouseWheelHandler.bind(this);
@@ -192,22 +212,21 @@ export class CameraController {
 		this._mouseUpHandler = this._mouseUpHandler.bind(this);
 
 		this._touchStartHandler = this._touchStartHandler.bind(this);
-		this._touchEndHandler = this._touchEndHandler.bind(this);
 		this._touchMoveHandler = this._touchMoveHandler.bind(this);
 
 		this._onKeyDownHandler = this._onKeyDownHandler.bind(this);
 		this._onKeyUpHandler = this._onKeyUpHandler.bind(this);
 	}
 
-	_contextMenuHandler(event) {
+	_contextMenuHandler(event: MouseEvent) {
 		if (!this.isEnabled) return;
 
 		event.preventDefault();
 	}
-	_mouseDownHandler(event) {
+	_mouseDownHandler(event: MouseEvent) {
 		if (!this.isEnabled) return;
 
-		if (event.button == 0) {
+		if (event.button === 0) {
 			this.state = 'rotate';
 			this._rotateStart = {
 				x: event.clientX,
@@ -228,7 +247,7 @@ export class CameraController {
 		this.domElement.removeEventListener('mousemove', this._mouseMoveHandler, false);
 		window.removeEventListener('mouseup', this._mouseUpHandler, false);
 	}
-	_mouseMoveHandler(event) {
+	_mouseMoveHandler(event: MouseEvent) {
 		if (!this.isEnabled) return;
 
 		if (this.state === 'rotate') {
@@ -265,17 +284,18 @@ export class CameraController {
 		}
 		// this.update();
 	}
-	_mouseWheelHandler(event) {
+	_mouseWheelHandler(event: WheelEvent) {
 		if (event.deltaY > 0) {
-			// this._spherical.radius *= 1.05;
 			this.targetRadiusDampedAction.addForce(1);
 		} else {
 			this.targetRadiusDampedAction.addForce(-1);
 		}
 	}
 
-	_touchStartHandler(event) {
-		let dX, dY;
+	_touchStartHandler(event: TouchEvent) {
+		let dX: number;
+		let dY: number;
+
 		switch (event.touches.length) {
 			case 1:
 				this.state = 'rotate';
@@ -309,8 +329,11 @@ export class CameraController {
 		}
 	}
 
-	_touchMoveHandler(event) {
-		let dX, dY, dDis;
+	_touchMoveHandler(event: TouchEvent) {
+		let dX: number;
+		let dY: number;
+		let dDis: number;
+
 		switch (event.touches.length) {
 			case 1:
 				if (this.state !== 'rotate') return;
@@ -339,14 +362,10 @@ export class CameraController {
 				dDis = this._zoomDistanceEnd - this._zoomDistance;
 				dDis *= 1.5;
 
-				var targetRadius = this._spherical.radius - dDis;
-				targetRadius = math.clamp(targetRadius, this.minDistance, this.maxDistance);
+				let targetRadius = this._spherical.radius - dDis;
+				targetRadius = clamp(targetRadius, this.minDistance, this.maxDistance);
 				this._zoomDistance = this._zoomDistanceEnd;
-
-				TweenLite.killTweensOf(this._spherical);
-				TweenLite.to(this._spherical, 0.3, {
-					radius: targetRadius
-				});
+				this._spherical.radius = targetRadius;
 				break;
 			case 3:
 				this._panEnd = {
@@ -379,13 +398,11 @@ export class CameraController {
 		// this.update();
 	}
 
-	_touchEndHandler(event) {}
+	_onKeyDownHandler(event: KeyboardEvent) {
+		let dX = 0;
+		let dY = 0;
 
-	_onKeyDownHandler(event) {
-		let dX = 0,
-			dY = 0;
-
-		switch (event.keyCode) {
+		switch (event.key) {
 			case this.keys.SHIFT:
 				this._isShiftDown = true;
 				break;
@@ -416,11 +433,9 @@ export class CameraController {
 			};
 			this._updateRotateHandler();
 		}
-
-		// this.update();
 	}
-	_onKeyUpHandler(event) {
-		switch (event.keyCode) {
+	_onKeyUpHandler(event: KeyboardEvent) {
+		switch (event.key) {
 			case this.keys.SHIFT:
 				this._isShiftDown = false;
 				break;

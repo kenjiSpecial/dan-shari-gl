@@ -285,7 +285,6 @@
 			loadFile(links[random]);
 		} else {
 			var fromHash = window.location.hash.substr(1);
-			console.log(fromHash);
 
 			for (let ii = 0; ii < links.length; ii++) {
 				var link = links[ii];
@@ -294,8 +293,6 @@
 					.getAttribute('href')
 					.split('/')[1]
 					.split('.')[0];
-
-				console.log(fileName == fromHash);
 
 				if (fileName == fromHash) {
 					loadFile(link);

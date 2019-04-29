@@ -11,3 +11,6 @@ export * from './math/math';
 export * from './math/ray';
 
 export * from './camera/camera';
+
+// sub compoents
+export * from './subComponents/cameracontroller';

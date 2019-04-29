@@ -48,8 +48,6 @@
 		<script src="./vendors/gl-matrix.js"></script>
 
 		<script src="./lib/dan-shari-gl.umd.js"></script>
-		<!-- plugin -->
-		<!-- <script src="./vendors/build/plugin/camera-controller.js"></script> -->
 
 		<script>
 			const vertexShaderSrc = `
@@ -95,7 +93,7 @@
 			camera.updateLookAtPosition(0, 0, 0);
 			camera.updateViewMatrix();
 
-			// var cameraController = new dsr.CameraController(camera);
+			var cameraController = new dsr.CameraController(camera);
 
 			// create sphere
 			{
