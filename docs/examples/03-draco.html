@@ -1,0 +1,466 @@
+<html>
+	<title>DEV</title>
+	<meta charset="UTF-8" />
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" />
+	<style>
+		* {
+			margin: 0;
+		}
+
+		html,
+		body {
+			font-family: 'Roboto', sans-serif;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+		}
+
+		canvas {
+			background: #000000;
+			display: block;
+		}
+
+		.dsr-desc {
+			position: absolute;
+			bottom: 20px;
+			left: 20px;
+			color: #cccccc;
+			font-size: 14px;
+			line-height: 1.75em;
+			z-index: 10;
+		}
+
+		.dsr-desc a {
+			color: #ffffff;
+		}
+	</style>
+	<meta
+		name="viewport"
+		content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+	/>
+
+	<body>
+		<div class="dsr-desc"><p class="dsr-p">#00 - rendering sphere</p></div>
+
+		<script src="./vendors/dat.gui.min.js"></script>
+		<script src="./vendors/stats.min.js"></script>
+		<script src="./vendors/TweenMax.js"></script>
+		<script src="./vendors/gl-matrix.js"></script>
+		<script src="./vendors/draco_decoder.js"></script>
+
+		<script src="./lib/dan-shari-gl.umd.js"></script>
+
+		<script>
+			const vertexShaderSrc = `
+			        precision highp float;
+			        attribute vec4 position;
+			        attribute vec3 normal;
+			
+			        uniform mat4 uMVPMatrix;
+			
+			        varying vec3 vNormal;
+			
+			        void main() {
+			            gl_Position = uMVPMatrix * position;
+			            vNormal = normal;
+			        }`;
+
+			const fragmentShaderSrc = `
+			        precision highp float;
+			
+			        varying vec3 vNormal;
+			        void main(){
+			            gl_FragColor = vec4(vNormal, 1.0);
+			        }
+			        `;
+
+			var dracoUrl = './assets/draco/dragon.drc';
+			var canvas = document.createElement('canvas');
+			var gl = canvas.getContext('webgl');
+			gl.getExtension('OES_element_index_uint');
+			document.body.appendChild(canvas);
+
+			// var div = 
+
+			var viewportWidth, viewportHeight;
+			var model = {};
+
+			resize();
+			window.addEventListener('resize', resize);
+
+			var camera = new dsr.PerspectiveCamera(
+				window.innerWidth,
+				window.innerHeight,
+				45,
+				0.1,
+				1000
+			);
+			camera.updatePosition(0, 0, -300);
+			camera.updateLookAtPosition(0, 0, 0);
+			camera.updateViewMatrix();
+
+			var cameraController = new dsr.CameraController(camera);
+			var prevTime;
+			var curTime;
+			var dracodata;
+
+			dsr.loadDraco(dracoUrl, loaded);
+
+			function loaded(_dracodata){
+				dracodata = _dracodata;
+				prevTime = curTime;
+				curTime = new Date().getTime();
+
+				var duration = curTime - prevTime;
+				var loadText = 'load time: ' + Math.floor(duration*1000)/1000/1000 + 's';
+				loadingDiv.innerHTML = loadText;
+				decodedDracoDiv.innerHTML = 'decoded...';
+
+				setTimeout(startDecode, 1);
+			}
+
+			function startDecode(){
+				const draco = new DracoDecoderModule();
+            	const decoder = new draco.Decoder();
+				const dracoGeometry = decodeDraco(draco, decoder, dracodata);
+
+				prevTime = curTime;
+				curTime = new Date().getTime();
+				var duration = curTime - prevTime;
+				var decodedText = 'decode time: ' + Math.floor(duration*1000)/1000/1000 + 's'
+				decodedDracoDiv.innerHTML = decodedText;
+				
+				const numFaces = getNumFaces(draco, dracoGeometry);
+				const numAttributes = dracoGeometry.num_attributes();
+				const numPoints = dracoGeometry.num_points();
+				
+				const vertices = getVertices(draco, decoder, dracoGeometry);
+				const normals = getNormals(draco, decoder, dracoGeometry);
+				const indices = getIndcies(draco, decoder, dracoGeometry);
+				modelDataDiv.innerHTML = 'number of point: ' + formatNumber(numPoints) + ', number of face: ' + formatNumber(numFaces);
+
+				model.progoram = dsr.createProgram(gl, vertexShaderSrc, fragmentShaderSrc);
+				model.buffers = {
+					position: dsr.createBufferWithLocation(
+						gl,
+						model.progoram,
+						new Float32Array(vertices),
+						'position'
+					),
+					normal: dsr.createBufferWithLocation(
+						gl,
+						model.progoram,
+						new Float32Array(normals),
+						'normal'
+					),
+					index: dsr.createIndex(gl, new Uint32Array(indices))
+				};
+				model.matrix = {
+					modelMatrix: mat4.create(),
+					mvMatrix: mat4.create(),
+					mvpMatrix: mat4.create()
+				};
+				model.uniforms = dsr.getUniformLocations(gl, model.progoram, ['uMVPMatrix']);
+			}
+
+			function getNumFaces(draco, dracoGeometry) {
+				let numFaces;
+				const geometryType = dracoGeometry.geometryType;
+				if (geometryType == draco.TRIANGULAR_MESH) {
+					numFaces = dracoGeometry.num_faces();
+				} else {
+					numFaces = 0;
+				}
+				return numFaces;
+			}
+
+			function getVertices(draco, decoder, dracoGeometry) {
+				
+				const posAttId = decoder.GetAttributeId(dracoGeometry, draco.POSITION);
+				if (posAttId == -1) {
+					const errorMsg = 'Draco: No position attribute found.';
+					console.error(errorMsg);
+					draco.destroy(decoder);
+					draco.destroy(dracoGeometry);
+					throw new Error(errorMsg);
+				}
+				const posAttribute = decoder.GetAttribute(dracoGeometry, posAttId);
+				const posAttributeData = new draco.DracoFloat32Array();
+				decoder.GetAttributeFloatForAllPoints(dracoGeometry, posAttribute, posAttributeData);
+
+				const numPoints = dracoGeometry.num_points();
+				const numVertces = numPoints * 3;
+				const vertices = new Float32Array(numVertces);
+				
+				for (var i = 0; i < numVertces; i += 1) {
+					vertices[i] = posAttributeData.GetValue(i);  // XYZ XYZ
+				}
+
+				draco.destroy(posAttributeData);
+				return vertices;
+			}
+
+			function getIndcies(draco, decoder, dracoGeometry, triangleStripDrawMode) {
+				// For mesh, we need to generate the faces.
+				const geometryType = dracoGeometry.geometryType;
+				if (geometryType !== draco.TRIANGULAR_MESH) {
+					return null;
+				}
+
+				let indices;
+				if (triangleStripDrawMode === undefined) {
+					triangleStripDrawMode = false;
+				}
+
+				if (triangleStripDrawMode) {
+					const stripsArray = new draco.DracoInt32Array();
+					const numStrips = decoder.GetTriangleStripsFromMesh(dracoGeometry, stripsArray);
+					indices = new Uint32Array(stripsArray.size());
+					for (var i = 0; i < stripsArray.size(); ++i) {
+						indices[i] = stripsArray.GetValue(i);
+					}
+					draco.destroy(stripsArray);
+				} else { // TRIANGLES
+					const numFaces = dracoGeometry.num_faces();
+					const numIndices = numFaces * 3;
+					indices = new Uint32Array(numIndices);
+					const ia = new draco.DracoInt32Array();
+					for (let i = 0; i < numFaces; ++i) {
+						decoder.GetFaceFromMesh(dracoGeometry, i, ia);
+						var index = i * 3;
+						indices[index] = ia.GetValue(0);
+						indices[index + 1] = ia.GetValue(1);
+						indices[index + 2] = ia.GetValue(2);
+					}
+					draco.destroy(ia);
+				}
+				return indices;
+			}
+    
+			function getColors(draco, decoder, dracoGeometry) {
+				// Get color attributes if exists.
+				var colorAttId = decoder.GetAttributeId(dracoGeometry, draco.COLOR);
+				var colAttributeData;
+				if (colorAttId === -1) {
+					return null;
+				} else {
+					//console.log('Loaded color attribute.');
+
+					const colAttribute = decoder.GetAttribute(dracoGeometry, colorAttId);
+					colAttributeData = new draco.DracoFloat32Array();
+					decoder.GetAttributeFloatForAllPoints(dracoGeometry, colAttribute, colAttributeData);
+
+					const numPoints = dracoGeometry.num_points();
+					const numComponents = colAttribute.num_components();
+					numVertces = numPoints * 4;
+					const colors = new Float32Array(numVertces);
+					for (let i = 0; i < numVertces; i += numComponents) {
+						colors[i  ] = colAttributeData.GetValue(i);
+						colors[i+1] = colAttributeData.GetValue(i+1);
+						colors[i+2] = colAttributeData.GetValue(i+2);
+						if (numComponents == 4) {
+							colors[i+3] = colAttributeData.GetValue(i+3);
+						} else {
+							colors[i+3] = 1.0;
+						}
+					}
+					draco.destroy(colAttributeData);
+
+					return colors;
+				}
+
+			}
+			
+			function getNormals(draco, decoder, dracoGeometry) {
+				// Get normal attributes if exists.
+				var normalAttId = decoder.GetAttributeId(dracoGeometry, draco.NORMAL);
+				var norAttributeData;
+				if (normalAttId === -1) {
+					return null;
+				} else {
+					var norAttribute = decoder.GetAttribute(dracoGeometry, normalAttId);
+					norAttributeData = new draco.DracoFloat32Array();
+					decoder.GetAttributeFloatForAllPoints(dracoGeometry, norAttribute, norAttributeData);
+
+					const numPoints = dracoGeometry.num_points();
+					const numVertces = numPoints * 3;
+					const normals = new Float32Array(numVertces);
+					for (var i = 0; i < numVertces; i += 1) {
+						normals[i] = norAttributeData.GetValue(i);  // XYZ XYZ
+					}
+					draco.destroy(norAttributeData);
+					return normals;
+				}
+			}
+
+			function getTextures(draco, decoder, dracoGeometry) {
+				// Get texture coord attributes if exists.
+				var texCoordAttId = decoder.GetAttributeId(dracoGeometry, draco.TEX_COORD);
+				var textCoordAttributeData;
+				if (texCoordAttId === -1) {
+					return null;
+				} else {
+					var texCoordAttribute = decoder.GetAttribute(dracoGeometry, texCoordAttId);
+					textCoordAttributeData = new draco.DracoFloat32Array();
+					decoder.GetAttributeFloatForAllPoints(dracoGeometry, texCoordAttribute, textCoordAttributeData);
+					
+					const numPoints = dracoGeometry.num_points();
+					const numVertces = numPoints * 2;
+					const texcoords = new Float32Array(numVertces);
+					for (var i = 0; i < numVertces; i += 1) {
+						texcoords[i] = textCoordAttributeData.GetValue(i);
+					}
+					draco.destroy(textCoordAttributeData);
+					return texcoords;
+				}
+			}
+
+			function decodeDraco(draco, decoder, rawBuffer) {
+				const buffer = new draco.DecoderBuffer();
+				buffer.Init(new Int8Array(rawBuffer), rawBuffer.byteLength);
+				const geometryType = decoder.GetEncodedGeometryType(buffer);
+				let dracoGeometry;
+				let decodingStatus;
+				if (geometryType === draco.TRIANGULAR_MESH) {
+					//console.log('Loaded a mesh.');
+					dracoGeometry = new draco.Mesh();
+					decodingStatus = decoder.DecodeBufferToMesh(buffer, dracoGeometry);
+				} else if (geometryType == draco.POINT_CLOUD) {
+					//console.log('Loaded a point cloud.');
+					dracoGeometry = new draco.PointCloud();
+					decodingStatus = decoder.DecodeBufferToPointCloud(buffer, dracoGeometry);
+				} else {
+					const errorMsg = 'Unknown geometry type.';
+					console.error(errorMsg);
+					throw new Error(errorMsg);
+				}
+
+				dracoGeometry.geometryType = geometryType; // store
+
+				if (!decodingStatus.ok() || dracoGeometry.ptr == 0) {
+					let errorMsg = 'Decoding failed: ';
+					errorMsg += decodingStatus.error_msg();
+					console.error(errorMsg);
+					draco.destroy(decoder);
+					draco.destroy(dracoGeometry);
+					throw new Error(errorMsg);
+				}
+				draco.destroy(buffer);
+				//console.log('Decoded.');
+
+				return dracoGeometry;
+			}
+
+
+			/**
+			 * set debug tool(dat.gui)
+			 **/
+			 let loopId;
+			let player = {
+				playAndStop: function() {
+					isPlay = !isPlay;
+					if (isPlay) {
+						playAndStopGui.name('pause');
+						loopId = requestAnimationFrame(tick);
+					} else {
+						playAndStopGui.name('play');
+						cancelAnimationFrame(loopId);
+					}
+				}
+			};
+			let isPlay = true;
+			let gui = new window.dat.GUI();
+			let playAndStopGui = gui.add(player, 'playAndStop').name('pause');
+
+			let stats = new Stats();
+			document.body.appendChild(stats.dom);
+
+			let parent = document.createElement('div');
+			stats.dom.appendChild(parent);
+
+			var loadingDiv = document.createElement('div');
+			loadingDiv.innerHTML = 'loading...';
+			parent.appendChild(loadingDiv);
+
+			var decodedDracoDiv = document.createElement('div');
+			parent.appendChild(decodedDracoDiv);
+
+			var modelDataDiv = document.createElement('div');
+			parent.appendChild(modelDataDiv);
+
+			curTime = new Date().getTime();
+
+			tick();
+
+			function resize() {
+				viewportWidth = window.innerWidth;
+				viewportHeight = window.innerHeight;
+				canvas.width = viewportWidth;
+				canvas.height = viewportHeight;
+
+				if (camera) camera.updateSize(viewportWidth, viewportHeight);
+			}
+
+			function tick() {
+				stats.update();
+
+				gl.clearColor(1, 1, 1, 1);
+				gl.enable(gl.DEPTH_TEST);
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+				gl.viewport(0, 0, viewportWidth, viewportHeight);
+
+				if(model.progoram){
+					mat4.multiply(
+						model.matrix.mvMatrix,
+						camera.viewMatrix,
+						model.matrix.modelMatrix
+					);
+
+					mat4.multiply(
+						model.matrix.mvpMatrix,
+						camera.projectionMatrix,
+						model.matrix.mvMatrix
+					);
+
+					gl.useProgram(model.progoram);
+
+					dsr.bindBuffer(
+						gl,
+						model.buffers.position.buffer,
+						model.buffers.position.location,
+						3
+					);
+					dsr.bindBuffer(gl, model.buffers.normal.buffer, model.buffers.normal.location, 3);
+
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.buffers.index.buffer);
+
+					gl.uniformMatrix4fv(model.uniforms.uMVPMatrix, false, model.matrix.mvpMatrix);
+
+					gl.drawElements(gl.TRIANGLES, model.buffers.index.cnt, gl.UNSIGNED_INT, 0);
+			
+				}
+
+				loopId = requestAnimationFrame(tick);
+			}
+
+			function formatNumber(num) {
+  				return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
+			}
+
+			
+
+		</script>
+		<!-- Global site tag (gtag.js) - Google Analytics -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-42485016-2"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag() {
+				dataLayer.push(arguments);
+			}
+			gtag('js', new Date());
+
+			gtag('config', 'UA-42485016-2');
+		</script>
+	</body>
+</html>

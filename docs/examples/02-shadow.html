@@ -234,6 +234,7 @@
 			const shadowHeight = 2048;
 
 			resize();
+			window.addEventListener('resize', resize);
 
 			gl.clearColor(0, 0, 0, 1);
 			gl.enable(gl.DEPTH_TEST);

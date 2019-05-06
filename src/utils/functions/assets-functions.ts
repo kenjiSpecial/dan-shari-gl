@@ -40,3 +40,27 @@ export function getImage(imageUrl: string, callback: Function) {
 
 	image.src = imageUrl;
 }
+
+/**
+ *
+ * @param dracoUrl
+ * @param callback
+ *
+ * https://github.com/kioku-systemk/dracoSample/blob/5611528416d4e0afb10cbec52d70493602d8a552/dracoloader.js#L210
+ *
+ */
+export function loadDraco(dracoUrl: string, callback: Function) {
+	let xhr = new XMLHttpRequest();
+	xhr.responseType = 'arraybuffer';
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState === 4) {
+			if (xhr.status === 200 || xhr.status === 0) {
+				callback(xhr.response);
+			} else {
+				console.error("Couldn't load [" + dracoUrl + '] [' + xhr.status + ']');
+			}
+		}
+	};
+	xhr.open('GET', dracoUrl, true);
+	xhr.send(null);
+}

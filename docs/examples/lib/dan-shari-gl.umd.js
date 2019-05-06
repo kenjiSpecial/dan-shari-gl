@@ -286,6 +286,30 @@
 	    };
 	    image.src = imageUrl;
 	}
+	/**
+	 *
+	 * @param dracoUrl
+	 * @param callback
+	 *
+	 * https://github.com/kioku-systemk/dracoSample/blob/5611528416d4e0afb10cbec52d70493602d8a552/dracoloader.js#L210
+	 *
+	 */
+	function loadDraco(dracoUrl, callback) {
+	    var xhr = new XMLHttpRequest();
+	    xhr.responseType = 'arraybuffer';
+	    xhr.onreadystatechange = function () {
+	        if (xhr.readyState === 4) {
+	            if (xhr.status === 200 || xhr.status === 0) {
+	                callback(xhr.response);
+	            }
+	            else {
+	                console.error("Couldn't load [" + dracoUrl + '] [' + xhr.status + ']');
+	            }
+	        }
+	    };
+	    xhr.open('GET', dracoUrl, true);
+	    xhr.send(null);
+	}
 	//# sourceMappingURL=assets-functions.js.map
 
 	function getSphere(radius, latitudeBands, longitudeBands) {
@@ -2425,6 +2449,9 @@
 	    }
 	    return TextRendering;
 	}());
+	//# sourceMappingURL=textRendering.js.map
+
+	//# sourceMappingURL=dan-shari-gl.js.map
 
 	exports.getUniformLocations = getUniformLocations;
 	exports.addLineNumbers = addLineNumbers;
@@ -2440,6 +2467,7 @@
 	exports.activeTexture = activeTexture;
 	exports.getAjaxJson = getAjaxJson;
 	exports.getImage = getImage;
+	exports.loadDraco = loadDraco;
 	exports.getSphere = getSphere;
 	exports.getPlane = getPlane;
 	exports.mergeGeomtory = mergeGeomtory;

@@ -89,6 +89,7 @@
 			var sphere = {};
 
 			resize();
+			window.addEventListener('resize', resize);
 
 			var camera = new dsr.OrthoCamera(
 				-viewportWidth / 2,
@@ -179,7 +180,7 @@
 				glCanvas.width = viewportWidth;
 				glCanvas.height = viewportHeight;
 
-				if (camera) camera.resize(viewportHeight, viewportHeight);
+				if (camera) camera.updateSize(viewportWidth, viewportHeight);
 			}
 
 			function initTextRendering() {

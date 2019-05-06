@@ -81,6 +81,7 @@
 			var sphere = {};
 
 			resize();
+			window.addEventListener('resize', resize);
 
 			var camera = new dsr.PerspectiveCamera(
 				window.innerWidth,
@@ -94,6 +95,7 @@
 			camera.updateViewMatrix();
 
 			var cameraController = new dsr.CameraController(camera);
+			
 
 			// create sphere
 			{
@@ -153,7 +155,7 @@
 				canvas.width = viewportWidth;
 				canvas.height = viewportHeight;
 
-				if (camera) camera.resize(viewportHeight, viewportHeight);
+				if (camera) camera.updateSize(viewportWidth, viewportHeight);
 			}
 
 			function tick() {
