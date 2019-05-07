@@ -1,1 +1,7 @@
-#### this library is being developed based on [alexjoverm/typescript-library-starter](alexjoverm/typescript-library-starter)
+# dan-shari-gl
+
+#### TypeScript minimum webgl library
+
+### Documents
+
+##### this library is being developed based on [alexjoverm/typescript-library-starter](alexjoverm/typescript-library-starter)

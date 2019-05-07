@@ -1,5 +1,3 @@
-# Dan-Shari-GL
-
--   Documents
--   Examples
--   Tutorials
+-   [Documents](https://kenjispecial.github.io/dan-shari-gl/documents/)
+-   [Examples](https://kenjispecial.github.io/dan-shari-gl/examples/)
+-   [Tutorials](https://kenjispecial.github.io/dan-shari-gl/tutorials/)
