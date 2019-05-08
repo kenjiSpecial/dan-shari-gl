@@ -100,6 +100,8 @@
 			var curTime;
 			var dracodata;
 			var twoDPosArr = [];
+			var positions = [];
+			var meshCnt = 0;
 
 			dsr.getAjaxJson(jsonUrl, loaded);
 
@@ -125,11 +127,14 @@
 					if(geometry.type === 'MultiPolygon'){
 						parseMultiPolygon(geometry.coordinates);
 					} else {
-						console.log(geometry.type);
 						parseCoordiantes(geometry.coordinates)
 					}
 
 				}
+
+				doEarCut();
+
+				console.log(twoDPosArr);
 
 			}
 
@@ -142,16 +147,30 @@
 			}
 
 			function parseCoordiantes(coordinates){
+				
+				// console.log(meshCnt);
 				for(let ii = 0; ii < coordinates.length; ii ++){
 					var coordinateCollection = coordinates[ii];
+					twoDPosArr.push([]);
+					var targetPosIndex = twoDPosArr.length - 1;
 
 					for(let jj = 0; jj < coordinateCollection.length; jj++){
-						console.log(coordinateCollection[jj]);
+						// console.log(coordinateCollection[jj]);
+						var pos = mercatorConverter(coordinateCollection[jj]);
+						// console.log(pos);
+						twoDPosArr[targetPosIndex].push(pos);
+						// meshCnt = meshCnt + 1;
 					}
+
+					// console.log(meshCnt);
 				}
 			}
 
-			function mercatorConverter(lat, lng) {
+			function doEarCut(){}
+
+			function mercatorConverter(coordinate) {
+				lng = coordinate[0];
+				lat = coordinate[1];
 				var zoom = 1;
 				var sin = Math.sin((lat * Math.PI) / 180);
 				var pow = Math.pow(2, zoom);
@@ -160,7 +179,7 @@
 				var x = ((lng + 180) / 360) * side * pow;
 				var y = -(0.5 - Math.log((sin + 1) / (-sin + 1)) / (Math.PI * 4)) * side * pow;
 
-				return { x, y };
+				return { x: x, y: y };
 			}
 
 			/**
