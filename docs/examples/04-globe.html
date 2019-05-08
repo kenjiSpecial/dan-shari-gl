@@ -1,0 +1,277 @@
+<html>
+	<title>DEV</title>
+	<meta charset="UTF-8" />
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" />
+	<style>
+		* {
+			margin: 0;
+		}
+
+		html,
+		body {
+			font-family: 'Roboto', sans-serif;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+		}
+
+		canvas {
+			background: #000000;
+			display: block;
+		}
+
+		.dsr-desc {
+			position: absolute;
+			bottom: 20px;
+			left: 20px;
+			color: #cccccc;
+			font-size: 14px;
+			line-height: 1.75em;
+			z-index: 10;
+		}
+
+		.dsr-desc a {
+			color: #ffffff;
+		}
+	</style>
+	<meta
+		name="viewport"
+		content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+	/>
+
+	<body>
+		<div class="dsr-desc"><p class="dsr-p">#04 - Globe</p></div>
+
+		<script src="./vendors/dat.gui.min.js"></script>
+		<script src="./vendors/stats.min.js"></script>
+		<script src="./vendors/gl-matrix.js"></script>
+		<script src="https://unpkg.com/earcut@2.1.5/dist/earcut.dev.js"></script>
+
+		<script src="./lib/dan-shari-gl.umd.js"></script>
+
+		<script>
+			const vertexShaderSrc = `
+			        precision highp float;
+			        attribute vec4 position;
+			        attribute vec3 normal;
+			
+			        uniform mat4 uMVPMatrix;
+			
+			        varying vec3 vNormal;
+			
+			        void main() {
+			            gl_Position = uMVPMatrix * position;
+			            vNormal = normal;
+			        }`;
+
+			const fragmentShaderSrc = `
+			        precision highp float;
+			
+			        varying vec3 vNormal;
+			        void main(){
+			            gl_FragColor = vec4(vNormal, 1.0);
+			        }
+			        `;
+
+			var jsonUrl = './assets/json/ne-110m.json'
+			var canvas = document.createElement('canvas');
+			var gl = canvas.getContext('webgl');
+			gl.getExtension('OES_element_index_uint');
+			document.body.appendChild(canvas);
+
+			var viewportWidth, viewportHeight;
+			var model = {};
+
+			resize();
+			window.addEventListener('resize', resize);
+
+			var camera = new dsr.PerspectiveCamera(
+				window.innerWidth,
+				window.innerHeight,
+				45,
+				0.1,
+				1000
+			);
+			camera.updatePosition(0, 0, -300);
+			camera.updateLookAtPosition(0, 0, 0);
+			camera.updateViewMatrix();
+
+			var prevTime;
+			var curTime;
+			var dracodata;
+			var twoDPosArr = [];
+
+			dsr.getAjaxJson(jsonUrl, loaded);
+
+			function loaded(jsonData){
+				// console.log(jsonData);
+				prevTime = curTime;
+				curTime = new Date().getTime();
+
+				var duration = curTime - prevTime;
+				var loadText = 'load time: ' + Math.floor(duration*1000)/1000/1000 + 's';
+				loadingDiv.innerHTML = loadText;
+
+				// setTimeout(startDecode, 1);
+				parseData(jsonData);
+			}
+
+			function parseData(jsonData){
+				var geometries = jsonData.geometries;
+
+				for(var ii = 0; ii < geometries.length; ii = ii + 1){
+					// twoDPosArr.push([]);
+					var geometry = geometries[ii];
+					if(geometry.type === 'MultiPolygon'){
+						parseMultiPolygon(geometry.coordinates);
+					} else {
+						console.log(geometry.type);
+						parseCoordiantes(geometry.coordinates)
+					}
+
+				}
+
+			}
+
+			function parseMultiPolygon(geometryArr){
+				
+				for(var jj = 0; jj < geometryArr.length; jj = jj + 1){
+					var coordinates = geometryArr[jj];
+					parseCoordiantes(coordinates);
+				}
+			}
+
+			function parseCoordiantes(coordinates){
+				for(let ii = 0; ii < coordinates.length; ii ++){
+					var coordinateCollection = coordinates[ii];
+
+					for(let jj = 0; jj < coordinateCollection.length; jj++){
+						console.log(coordinateCollection[jj]);
+					}
+				}
+			}
+
+			function mercatorConverter(lat, lng) {
+				var zoom = 1;
+				var sin = Math.sin((lat * Math.PI) / 180);
+				var pow = Math.pow(2, zoom);
+
+				var side = 256;
+				var x = ((lng + 180) / 360) * side * pow;
+				var y = -(0.5 - Math.log((sin + 1) / (-sin + 1)) / (Math.PI * 4)) * side * pow;
+
+				return { x, y };
+			}
+
+			/**
+			 * set debug tool(dat.gui)
+			 **/
+			 let loopId;
+			let player = {
+				playAndStop: function() {
+					isPlay = !isPlay;
+					if (isPlay) {
+						playAndStopGui.name('pause');
+						loopId = requestAnimationFrame(tick);
+					} else {
+						playAndStopGui.name('play');
+						cancelAnimationFrame(loopId);
+					}
+				}
+			};
+			let isPlay = true;
+			let gui = new window.dat.GUI();
+			let playAndStopGui = gui.add(player, 'playAndStop').name('pause');
+
+			let stats = new Stats();
+			document.body.appendChild(stats.dom);
+
+			let parent = document.createElement('div');
+			stats.dom.appendChild(parent);
+
+			var loadingDiv = document.createElement('div');
+			loadingDiv.innerHTML = 'loading...';
+			parent.appendChild(loadingDiv);
+
+			var decodedDracoDiv = document.createElement('div');
+			parent.appendChild(decodedDracoDiv);
+
+			var modelDataDiv = document.createElement('div');
+			parent.appendChild(modelDataDiv);
+
+			curTime = new Date().getTime();
+
+			tick();
+
+			function resize() {
+				viewportWidth = window.innerWidth;
+				viewportHeight = window.innerHeight;
+				canvas.width = viewportWidth;
+				canvas.height = viewportHeight;
+
+				if (camera) camera.updateSize(viewportWidth, viewportHeight);
+			}
+
+			function tick() {
+				stats.update();
+
+				gl.clearColor(1, 1, 1, 1);
+				gl.enable(gl.DEPTH_TEST);
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+				gl.viewport(0, 0, viewportWidth, viewportHeight);
+
+				if(model.progoram){
+					mat4.multiply(
+						model.matrix.mvMatrix,
+						camera.viewMatrix,
+						model.matrix.modelMatrix
+					);
+
+					mat4.multiply(
+						model.matrix.mvpMatrix,
+						camera.projectionMatrix,
+						model.matrix.mvMatrix
+					);
+
+					gl.useProgram(model.progoram);
+
+					dsr.bindBuffer(
+						gl,
+						model.buffers.position.buffer,
+						model.buffers.position.location,
+						3
+					);
+					dsr.bindBuffer(gl, model.buffers.normal.buffer, model.buffers.normal.location, 3);
+
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.buffers.index.buffer);
+
+					gl.uniformMatrix4fv(model.uniforms.uMVPMatrix, false, model.matrix.mvpMatrix);
+
+					gl.drawElements(gl.TRIANGLES, model.buffers.index.cnt, gl.UNSIGNED_INT, 0);
+			
+				}
+
+				loopId = requestAnimationFrame(tick);
+			}
+
+			function formatNumber(num) {
+  				return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
+			}
+
+			
+
+		</script>
+		<!-- Global site tag (gtag.js) - Google Analytics -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-42485016-2"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag() {
+				dataLayer.push(arguments);
+			}
+			gtag('js', new Date());
+
+			gtag('config', 'UA-42485016-2');
+		</script>
+	</body>
+</html>
