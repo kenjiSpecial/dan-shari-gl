@@ -21,7 +21,6 @@
 	// Data types
 	// https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#Data_types
 	var UNSIGNED_BYTE = 0x1401;
-	//# sourceMappingURL=constants.js.map
 
 	function getUniformLocations(gl, program, arr) {
 	    var locations = {};
@@ -153,7 +152,6 @@
 	    gl.vertexAttribPointer(location, size, type, normalized, stride, offset);
 	    gl.enableVertexAttribArray(location);
 	}
-	//# sourceMappingURL=gl-functions.js.map
 
 	/**
 	 *
@@ -250,7 +248,6 @@
 	    gl.bindTexture(gl.TEXTURE_2D, texture);
 	    gl.uniform1i(uniformLocation, textureNum);
 	}
-	//# sourceMappingURL=gl-textures.js.map
 
 	/**
 	 * load json with ajax
@@ -310,7 +307,6 @@
 	    xhr.open('GET', dracoUrl, true);
 	    xhr.send(null);
 	}
-	//# sourceMappingURL=assets-functions.js.map
 
 	function getSphere(radius, latitudeBands, longitudeBands) {
 	    if (radius === void 0) { radius = 2; }
@@ -420,7 +416,6 @@
 	        indices: indices
 	    };
 	}
-	//# sourceMappingURL=generateGeometry.js.map
 
 	// segment is one
 	function createSimpleBox() {
@@ -567,7 +562,6 @@
 	        indices: indices
 	    };
 	}
-	//# sourceMappingURL=generateSimpleGeometry.js.map
 
 	function clamp(value, min, max) {
 	    return Math.min(Math.max(value, min), max);
@@ -601,7 +595,6 @@
 	    // 180 / Math.PI = 57.29577951308232
 	    return 57.29577951308232 * value;
 	}
-	//# sourceMappingURL=math.js.map
 
 	/**
 	 * Common utilities
@@ -1560,7 +1553,6 @@
 	    };
 	    return Ray;
 	}());
-	//# sourceMappingURL=ray.js.map
 
 	/*! *****************************************************************************
 	Copyright (c) Microsoft Corporation. All rights reserved.
@@ -1691,7 +1683,6 @@
 	    };
 	    return OrthoCamera;
 	}(Camera));
-	//# sourceMappingURL=camera.js.map
 
 	var DampedAction = /** @class */ (function () {
 	    function DampedAction() {
@@ -2089,7 +2080,6 @@
 	    };
 	    return CameraController;
 	}());
-	//# sourceMappingURL=cameracontroller.js.map
 
 	// convert layout-bmfont-text into layout
 	// https://github.com/Jam3/layout-bmfont-text
@@ -2418,7 +2408,6 @@
 	    }
 	    return 0;
 	}
-	//# sourceMappingURL=textLayout.js.map
 
 	var TextRendering = /** @class */ (function () {
 	    function TextRendering(gl, textLayout, bitmapImage) {
@@ -2449,9 +2438,6 @@
 	    }
 	    return TextRendering;
 	}());
-	//# sourceMappingURL=textRendering.js.map
-
-	//# sourceMappingURL=dan-shari-gl.js.map
 
 	exports.getUniformLocations = getUniformLocations;
 	exports.addLineNumbers = addLineNumbers;
