@@ -128,11 +128,13 @@
 							radH = viewportWidth / viewportHeight;
 						}
 						this.target[0] =
-							Math.sin(this.time * this.direction) *
-							Math.cos(this.theta + this.time / 4) * radW;
+                            Math.sin(this.time * this.direction) *
+                            Math.sin( this.time/3) *
+							Math.cos(this.theta + this.time ) * radW;
 						this.target[1] =
 							Math.sin(this.time * this.direction) *
-							Math.sin(this.theta + this.time / 3) * radH;
+                            Math.cos( this.time/ 5) *
+                            Math.sin(this.theta + this.time / 1.5) * radH;
 						// this.target[0] = Math.cos(this.time * this.direction);
 					}
 
