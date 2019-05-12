@@ -64,7 +64,7 @@
 			        varying vec3 vNormal;
 			
 			        void main() {
-						gl_Position = mix(twoPos, uMVPMatrix * position, clamp(uProgress * 2.0 - rate * 1.0, 0.0, 1.0) );
+						gl_Position = mix(twoPos, uMVPMatrix * position, clamp(uProgress * 1.2 - rate * 0.2, 0.0, 1.0) );
 			            vNormal = normalize ( normal + vec3(1.) );
 			        }`;
 
@@ -208,6 +208,12 @@
 			}
 
 			function parseCoordiantes(coordinates) {
+
+
+
+
+
+
 				for (let ii = 0; ii < coordinates.length; ii++) {
 					var coordinateCollection = coordinates[ii];
 					twoDPosArr.push([]);
