@@ -44,7 +44,7 @@ export function createEmptyTexture(
 
 export function createImageTexture(
 	gl: WebGLRenderingContext,
-	image: HTMLImageElement,
+	imageCanvas: HTMLImageElement | HTMLCanvasElement,
 	format: number = RGB,
 	isFlip: boolean = false,
 	isMipmap: boolean = false
@@ -54,9 +54,9 @@ export function createImageTexture(
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 
 	gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, isFlip ? 0 : 1);
-	gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, image);
+	gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, imageCanvas);
 
-	if (isPowerOf2(image.width) && isPowerOf2(image.height) && isMipmap) {
+	if (isPowerOf2(imageCanvas.width) && isPowerOf2(imageCanvas.height) && isMipmap) {
 		// Yes, it's a power of 2. Generate mips.
 		gl.generateMipmap(gl.TEXTURE_2D);
 	} else {
