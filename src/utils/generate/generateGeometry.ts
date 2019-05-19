@@ -53,6 +53,7 @@ export function getPlane(
 	heightSegment: number
 ) {
 	let vertices = [];
+	let uvs = [];
 	let xRate = 1 / widthSegment;
 	let yRate = 1 / heightSegment;
 
@@ -64,6 +65,8 @@ export function getPlane(
 			let xPos = (-0.5 + xRate * xx) * width;
 			vertices.push(xPos);
 			vertices.push(yPos);
+			uvs.push(xx / widthSegment);
+			uvs.push(yy / heightSegment);
 		}
 	}
 
@@ -86,6 +89,7 @@ export function getPlane(
 
 	return {
 		vertices: vertices,
+		uvs: uvs,
 		indices: indices
 	};
 }
