@@ -6,7 +6,9 @@ export class Camera {
 	public position: Vector3 = { x: 0, y: 0, z: 0 };
 	public lookAtPosition: Vector3 = { x: 0, y: 0, z: 0 };
 	public viewMatrix: mat4 = mat4.create();
+	public viewMatrixInverse: mat4 = mat4.create();
 	public projectionMatrix: mat4 = mat4.create();
+	public projectionMatrixInverse: mat4 = mat4.create();
 
 	constructor(type: string = 'camera') {
 		this.type = type;
@@ -31,6 +33,8 @@ export class Camera {
 			[this.lookAtPosition.x, this.lookAtPosition.y, this.lookAtPosition.z],
 			[0, 1, 0]
 		);
+
+		mat4.invert(this.viewMatrixInverse, this.viewMatrix);
 	}
 }
 
@@ -69,6 +73,8 @@ export class PerspectiveCamera extends Camera {
 			this.near,
 			this.far
 		);
+
+		mat4.invert(this.projectionMatrixInverse, this.projectionMatrix);
 	}
 
 	public updateSize(width: number, height: number) {
@@ -148,5 +154,7 @@ export class OrthoCamera extends Camera {
 			this.near,
 			this.far
 		);
+
+		mat4.invert(this.projectionMatrixInverse, this.projectionMatrix);
 	}
 }

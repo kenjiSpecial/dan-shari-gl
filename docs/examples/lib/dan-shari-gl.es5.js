@@ -16,580 +16,6 @@ var DEPTH_COMPONENT16 = 0x81a5;
 // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#Data_types
 var UNSIGNED_BYTE = 0x1401;
 
-function getUniformLocations(gl, program, arr) {
-    var locations = {};
-    // for (let ii = 0; ii < arr.length; ii++) {
-    for (var _i = 0, arr_1 = arr; _i < arr_1.length; _i++) {
-        var name_1 = arr_1[_i];
-        var uniformLocation = gl.getUniformLocation(program, name_1);
-        locations[name_1] = uniformLocation;
-    }
-    return locations;
-}
-/**
- * display error of shader.
- * @param text
- */
-function addLineNumbers(text) {
-    var lines = text.split('\n');
-    for (var ii = 0; ii < lines.length; ii = ii + 1) {
-        lines[ii] = ii + 1 + ": " + lines[ii];
-    }
-    return lines.join('\n');
-}
-/**
- * compile webgl shader
- * @param gl
- * @param glType
- * @param shaderSource
- */
-function compileGLShader(gl, glType, shaderSource) {
-    var shader = gl.createShader(glType);
-    gl.shaderSource(shader, shaderSource);
-    gl.compileShader(shader);
-    if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        return shader;
-    }
-    else {
-        console.warn("[WebGLShader]: Shader couldn't compile.1");
-        if (gl.getShaderInfoLog(shader) !== '') {
-            console.warn('[WebGLShader]: gl.getShaderInfoLog()', glType === gl.VERTEX_SHADER ? 'vertex' : 'fragment', gl.getShaderInfoLog(shader), addLineNumbers(shaderSource));
-            return undefined;
-        }
-    }
-}
-/**
- *
- * @param gl
- * @param vertexShaderSrc
- * @param fragmentShaderSrc
- */
-function createProgram(gl, vertexShaderSrc, fragmentShaderSrc) {
-    var program = gl.createProgram();
-    var vertexShader = compileGLShader(gl, gl.VERTEX_SHADER, vertexShaderSrc);
-    var fragmentShader = compileGLShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSrc);
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-    try {
-        var success = gl.getProgramParameter(program, gl.LINK_STATUS);
-        if (!success) {
-            throw gl.getProgramInfoLog(program);
-        }
-    }
-    catch (error) {
-        console.warn("WebGLProgram: " + error);
-    }
-    return program;
-}
-/**
- *
- * create buffer and get location from program
- *
- * @param gl
- * @param program
- * @param data
- * @param str
- *
- * @returns uniformLocation
- */
-function createBufferWithLocation(gl, program, data, str) {
-    var buffer = gl.createBuffer();
-    var location = gl.getAttribLocation(program, str);
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-    return { buffer: buffer, location: location };
-}
-/**
- *
- * @param gl
- * @param data
- */
-function createBuffer(gl, data) {
-    var buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-    return buffer;
-}
-/**
- *
- * make  index buffer
- *
- * @param gl
- * @param indices
- */
-function createIndex(gl, indices) {
-    var buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-    var cnt = indices.length;
-    return { cnt: cnt, buffer: buffer };
-}
-/**
- *
- * @param {WebGLRenderingContext} gl
- * @param {WebGLBuffer} buffer
- * @param {Number} location
- * @param {Number} size
- * @param {Boolean} normalized
- * @param {Number} stride
- * @param {Number} offset
- */
-function bindBuffer(gl, buffer, location, size, type, normalized, stride, offset) {
-    if (location === void 0) { location = 0; }
-    if (size === void 0) { size = 1; }
-    if (type === void 0) { type = FLOAT; }
-    if (normalized === void 0) { normalized = false; }
-    if (stride === void 0) { stride = 0; }
-    if (offset === void 0) { offset = 0; }
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.vertexAttribPointer(location, size, type, normalized, stride, offset);
-    gl.enableVertexAttribArray(location);
-}
-
-/**
- *
- * @param gl
- * @param textureWidth
- * @param textureHeight
- * @param format
- * @param minFilter
- * @param magFilter
- * @param wrapS
- * @param wrapT
- * @param type
- */
-function createEmptyTexture(gl, textureWidth, textureHeight, format, minFilter, magFilter, wrapS, wrapT, type) {
-    if (format === void 0) { format = RGB; }
-    if (minFilter === void 0) { minFilter = LINEAR; }
-    if (magFilter === void 0) { magFilter = LINEAR; }
-    if (wrapS === void 0) { wrapS = CLAMP_TO_EDGE; }
-    if (wrapT === void 0) { wrapT = CLAMP_TO_EDGE; }
-    if (type === void 0) { type = UNSIGNED_BYTE; }
-    var targetTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-    // define size and format of level 0
-    var level = 0;
-    // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
-    gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureHeight, 0, format, type, null);
-    // set the filtering so we don't need mips
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapS);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapT);
-    return targetTexture;
-}
-function createImageTexture(gl, image, format, isFlip, isMipmap) {
-    if (format === void 0) { format = RGB; }
-    if (isFlip === void 0) { isFlip = false; }
-    if (isMipmap === void 0) { isMipmap = false; }
-    var texture = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, isFlip ? 0 : 1);
-    gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, image);
-    if (isPowerOf2(image.width) && isPowerOf2(image.height) && isMipmap) {
-        // Yes, it's a power of 2. Generate mips.
-        gl.generateMipmap(gl.TEXTURE_2D);
-    }
-    else {
-        // No, it's not a power of 2. Turn of mips and set
-        // wrapping to clamp to edge
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    }
-    return texture;
-}
-function isPowerOf2(value) {
-    return (value & (value - 1)) === 0;
-}
-/**
- *
- * @param gl
- * @param texture
- * @param image
- * @param format
- */
-function updateImageTexture(gl, texture, image, format) {
-    if (format === void 0) { format = RGB; }
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, image);
-    if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
-        // Yes, it's a power of 2. Generate mips.
-        gl.generateMipmap(gl.TEXTURE_2D);
-    }
-    else {
-        // No, it's not a power of 2. Turn of mips and set
-        // wrapping to clamp to edge
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    }
-}
-/**
- *
- * @param gl
- * @param texture
- * @param uniformLocation
- * @param textureNum
- */
-function activeTexture(gl, texture, uniformLocation, textureNum) {
-    if (textureNum === void 0) { textureNum = 0; }
-    var activeTextureNum = gl.TEXTURE0 + textureNum;
-    gl.activeTexture(activeTextureNum);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.uniform1i(uniformLocation, textureNum);
-}
-
-/**
- * load json with ajax
- *
- * @param url url to load json file
- */
-function getAjaxJson(url, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
-            if (xhr.status === 200) {
-                var resp = xhr.responseText;
-                var respJson = JSON.parse(resp);
-                callback(respJson);
-                // resolve(respJson);
-            }
-        }
-    };
-    xhr.send();
-}
-/**
- *
- * @param imageUrl
- */
-function getImage(imageUrl, callback) {
-    var image = new Image();
-    image.onload = function () {
-        callback(image);
-    };
-    image.onerror = function () {
-        console.warn("image(" + imageUrl + ") load err");
-    };
-    image.src = imageUrl;
-}
-/**
- *
- * @param dracoUrl
- * @param callback
- *
- * https://github.com/kioku-systemk/dracoSample/blob/5611528416d4e0afb10cbec52d70493602d8a552/dracoloader.js#L210
- *
- */
-function loadDraco(dracoUrl, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.responseType = 'arraybuffer';
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
-            if (xhr.status === 200 || xhr.status === 0) {
-                callback(xhr.response);
-            }
-            else {
-                console.error("Couldn't load [" + dracoUrl + '] [' + xhr.status + ']');
-            }
-        }
-    };
-    xhr.open('GET', dracoUrl, true);
-    xhr.send(null);
-}
-
-function getSphere(radius, latitudeBands, longitudeBands) {
-    if (radius === void 0) { radius = 2; }
-    if (latitudeBands === void 0) { latitudeBands = 64; }
-    if (longitudeBands === void 0) { longitudeBands = 64; }
-    var vertices = [];
-    var textures = [];
-    var normals = [];
-    var indices = [];
-    for (var latNumber = 0; latNumber <= latitudeBands; latNumber = latNumber + 1) {
-        var theta = (latNumber * Math.PI) / latitudeBands;
-        var sinTheta = Math.sin(theta);
-        var cosTheta = Math.cos(theta);
-        for (var longNumber = 0; longNumber <= longitudeBands; longNumber = longNumber + 1) {
-            var phi = (longNumber * 2 * Math.PI) / longitudeBands;
-            var sinPhi = Math.sin(phi);
-            var cosPhi = Math.cos(phi);
-            var x = cosPhi * sinTheta;
-            var y = cosTheta;
-            var z = sinPhi * sinTheta;
-            var u = 1 - longNumber / longitudeBands;
-            var v = 1 - latNumber / latitudeBands;
-            normals.push(x, y, z);
-            textures.push(u, v);
-            vertices.push(radius * x, radius * y, radius * z);
-        }
-    }
-    for (var latNumber = 0; latNumber < latitudeBands; latNumber = latNumber + 1) {
-        for (var longNumber = 0; longNumber < longitudeBands; longNumber = longNumber + 1) {
-            var first = latNumber * (longitudeBands + 1) + longNumber;
-            var second = first + longitudeBands + 1;
-            indices.push(second, first, first + 1, second + 1, second, first + 1);
-        }
-    }
-    return {
-        vertices: vertices,
-        uvs: textures,
-        normals: normals,
-        indices: indices
-    };
-}
-function getPlane(width, height, widthSegment, heightSegment) {
-    var vertices = [];
-    var xRate = 1 / widthSegment;
-    var yRate = 1 / heightSegment;
-    // set vertices and barycentric vertices
-    for (var yy = 0; yy <= heightSegment; yy++) {
-        var yPos = (-0.5 + yRate * yy) * height;
-        for (var xx = 0; xx <= widthSegment; xx++) {
-            var xPos = (-0.5 + xRate * xx) * width;
-            vertices.push(xPos);
-            vertices.push(yPos);
-        }
-    }
-    var indices = [];
-    for (var yy = 0; yy < heightSegment; yy++) {
-        for (var xx = 0; xx < widthSegment; xx++) {
-            var rowStartNum = yy * (widthSegment + 1);
-            var nextRowStartNum = (yy + 1) * (widthSegment + 1);
-            indices.push(rowStartNum + xx);
-            indices.push(rowStartNum + xx + 1);
-            indices.push(nextRowStartNum + xx);
-            indices.push(rowStartNum + xx + 1);
-            indices.push(nextRowStartNum + xx + 1);
-            indices.push(nextRowStartNum + xx);
-        }
-    }
-    return {
-        vertices: vertices,
-        indices: indices
-    };
-}
-function mergeGeomtory(geometries) {
-    var vertices = [];
-    var normals = [];
-    var uvs = [];
-    var indices = [];
-    var lastVertices = 0;
-    for (var ii = 0; ii < geometries.length; ii++) {
-        var geometry = geometries[ii];
-        if (geometry.indices.length > 0) {
-            for (var ii_1 = 0; ii_1 < geometry.indices.length; ii_1++) {
-                indices.push(geometry.indices[ii_1] + lastVertices / 3);
-            }
-        }
-        if (geometry.vertices.length > 0) {
-            for (var ii_2 = 0; ii_2 < geometry.vertices.length; ii_2++) {
-                vertices.push(geometry.vertices[ii_2]);
-            }
-            lastVertices += geometry.vertices.length;
-        }
-        if (geometry.normals.length > 0) {
-            for (var ii_3 = 0; ii_3 < geometry.normals.length; ii_3++) {
-                normals.push(geometry.normals[ii_3]);
-            }
-        }
-        if (geometry.uvs.length > 0) {
-            for (var ii_4 = 0; ii_4 < geometry.uvs.length; ii_4++) {
-                uvs.push(geometry.uvs[ii_4]);
-            }
-        }
-    }
-    return {
-        vertices: vertices,
-        normals: normals,
-        uvs: uvs,
-        indices: indices
-    };
-}
-
-// segment is one
-function createSimpleBox() {
-    var unit = 0.5;
-    var positions = [
-        // Front face
-        -unit, -unit, unit,
-        unit, -unit, unit,
-        unit, unit, unit,
-        -unit, unit, unit,
-        // Back face
-        -unit, -unit, -unit,
-        -unit, unit, -unit,
-        unit, unit, -unit,
-        unit, -unit, -unit,
-        // Top face
-        -unit, unit, -unit,
-        -unit, unit, unit,
-        unit, unit, unit,
-        unit, unit, -unit,
-        // Bottom face
-        -unit, -unit, -unit,
-        unit, -unit, -unit,
-        unit, -unit, unit,
-        -unit, -unit, unit,
-        // Right face
-        unit, -unit, -unit,
-        unit, unit, -unit,
-        unit, unit, unit,
-        unit, -unit, unit,
-        // Left face
-        -unit, -unit, -unit,
-        -unit, -unit, unit,
-        -unit, unit, unit,
-        -unit, unit, -unit,
-    ];
-    var indices = [
-        0, 1, 2, 0, 2, 3,
-        4, 5, 6, 4, 6, 7,
-        8, 9, 10, 8, 10, 11,
-        12, 13, 14, 12, 14, 15,
-        16, 17, 18, 16, 18, 19,
-        20, 21, 22, 20, 22, 23,
-    ];
-    var uvs = [
-        // Front
-        0.0, 0.0,
-        1.0, 0.0,
-        1.0, 1.0,
-        0.0, 1.0,
-        // Back
-        0.0, 0.0,
-        1.0, 0.0,
-        1.0, 1.0,
-        0.0, 1.0,
-        // Top
-        0.0, 0.0,
-        1.0, 0.0,
-        1.0, 1.0,
-        0.0, 1.0,
-        // Bottom
-        0.0, 0.0,
-        1.0, 0.0,
-        1.0, 1.0,
-        0.0, 1.0,
-        // Right
-        0.0, 0.0,
-        1.0, 0.0,
-        1.0, 1.0,
-        0.0, 1.0,
-        // Left
-        0.0, 0.0,
-        1.0, 0.0,
-        1.0, 1.0,
-        0.0, 1.0,
-    ];
-    var normals = [
-        // Front
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        // Back
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
-        // Top
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        // Bottom
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0,
-        // Right
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        // Left
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0
-    ];
-    return {
-        vertices: positions,
-        normals: normals,
-        uvs: uvs,
-        indices: indices
-    };
-}
-function createSimplePlane() {
-    var unit = 0.5;
-    var positions = [
-        -unit, -unit, 0.0,
-        unit, -unit, 0.0,
-        unit, unit, 0.0,
-        -unit, unit, 0.0
-    ];
-    var indices = [
-        0, 1, 2, 0, 2, 3,
-    ];
-    var uvs = [
-        0.0, 0.0,
-        1.0, 0.0,
-        1.0, 1.0,
-        0.0, 1.0,
-    ];
-    var normals = [
-        // Front
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0
-    ];
-    return {
-        vertices: positions,
-        normals: normals,
-        uvs: uvs,
-        indices: indices
-    };
-}
-
-function clamp(value, min, max) {
-    return Math.min(Math.max(value, min), max);
-}
-function range(min, max) {
-    return (max - min) * Math.random() + min;
-}
-// https://stackoverflow.com/questions/32861804/how-to-calculate-the-centre-point-of-a-circle-given-three-points
-function calculateCircleCenter(A, B, C) {
-    var yDeltaA = B.y - A.y;
-    var xDeltaA = B.x - A.x;
-    var yDeltaB = C.y - B.y;
-    var xDeltaB = C.x - B.x;
-    var center = { x: 0, y: 0, z: 0 };
-    var aSlope = yDeltaA / xDeltaA;
-    var bSlope = yDeltaB / xDeltaB;
-    center.x =
-        (aSlope * bSlope * (A.y - C.y) + bSlope * (A.x + B.x) - aSlope * (B.x + C.x)) /
-            (2 * (bSlope - aSlope));
-    center.y = (-1 * (center.x - (A.x + B.x) / 2)) / aSlope + (A.y + B.y) / 2;
-    return center;
-}
-function mix(x, y, a) {
-    return x * (1 - a) + y * a;
-}
-function degToRad(value) {
-    // Math.PI / 180 = 0.017453292519943295
-    return value * 0.017453292519943295;
-}
-function radToDeg(value) {
-    // 180 / Math.PI = 57.29577951308232
-    return 57.29577951308232 * value;
-}
-
 /**
  * Common utilities
  * @module glMatrix
@@ -687,6 +113,69 @@ function identity$3(out) {
   out[13] = 0;
   out[14] = 0;
   out[15] = 1;
+  return out;
+}
+/**
+ * Inverts a mat4
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the source matrix
+ * @returns {mat4} out
+ */
+
+function invert$3(out, a) {
+  var a00 = a[0],
+      a01 = a[1],
+      a02 = a[2],
+      a03 = a[3];
+  var a10 = a[4],
+      a11 = a[5],
+      a12 = a[6],
+      a13 = a[7];
+  var a20 = a[8],
+      a21 = a[9],
+      a22 = a[10],
+      a23 = a[11];
+  var a30 = a[12],
+      a31 = a[13],
+      a32 = a[14],
+      a33 = a[15];
+  var b00 = a00 * a11 - a01 * a10;
+  var b01 = a00 * a12 - a02 * a10;
+  var b02 = a00 * a13 - a03 * a10;
+  var b03 = a01 * a12 - a02 * a11;
+  var b04 = a01 * a13 - a03 * a11;
+  var b05 = a02 * a13 - a03 * a12;
+  var b06 = a20 * a31 - a21 * a30;
+  var b07 = a20 * a32 - a22 * a30;
+  var b08 = a20 * a33 - a23 * a30;
+  var b09 = a21 * a32 - a22 * a31;
+  var b10 = a21 * a33 - a23 * a31;
+  var b11 = a22 * a33 - a23 * a32; // Calculate the determinant
+
+  var det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+
+  if (!det) {
+    return null;
+  }
+
+  det = 1.0 / det;
+  out[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det;
+  out[1] = (a02 * b10 - a01 * b11 - a03 * b09) * det;
+  out[2] = (a31 * b05 - a32 * b04 + a33 * b03) * det;
+  out[3] = (a22 * b04 - a21 * b05 - a23 * b03) * det;
+  out[4] = (a12 * b08 - a10 * b11 - a13 * b07) * det;
+  out[5] = (a00 * b11 - a02 * b08 + a03 * b07) * det;
+  out[6] = (a32 * b02 - a30 * b05 - a33 * b01) * det;
+  out[7] = (a20 * b05 - a22 * b02 + a23 * b01) * det;
+  out[8] = (a10 * b10 - a11 * b08 + a13 * b06) * det;
+  out[9] = (a01 * b08 - a00 * b10 - a03 * b06) * det;
+  out[10] = (a30 * b04 - a31 * b02 + a33 * b00) * det;
+  out[11] = (a21 * b02 - a20 * b04 - a23 * b00) * det;
+  out[12] = (a11 * b07 - a10 * b09 - a12 * b06) * det;
+  out[13] = (a00 * b09 - a01 * b07 + a02 * b06) * det;
+  out[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det;
+  out[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
   return out;
 }
 /**
@@ -970,6 +459,27 @@ function cross(out, a, b) {
   out[0] = ay * bz - az * by;
   out[1] = az * bx - ax * bz;
   out[2] = ax * by - ay * bx;
+  return out;
+}
+/**
+ * Transforms the vec3 with a mat4.
+ * 4th vector component is implicitly '1'
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the vector to transform
+ * @param {mat4} m matrix to transform with
+ * @returns {vec3} out
+ */
+
+function transformMat4(out, a, m) {
+  var x = a[0],
+      y = a[1],
+      z = a[2];
+  var w = m[3] * x + m[7] * y + m[11] * z + m[15];
+  w = w || 1.0;
+  out[0] = (m[0] * x + m[4] * y + m[8] * z + m[12]) / w;
+  out[1] = (m[1] * x + m[5] * y + m[9] * z + m[13]) / w;
+  out[2] = (m[2] * x + m[6] * y + m[10] * z + m[14]) / w;
   return out;
 }
 /**
@@ -1426,6 +936,594 @@ var forEach$2 = function () {
   };
 }();
 
+function getUniformLocations(gl, program, arr) {
+    var locations = {};
+    // for (let ii = 0; ii < arr.length; ii++) {
+    for (var _i = 0, arr_1 = arr; _i < arr_1.length; _i++) {
+        var name_1 = arr_1[_i];
+        var uniformLocation = gl.getUniformLocation(program, name_1);
+        locations[name_1] = uniformLocation;
+    }
+    return locations;
+}
+/**
+ * display error of shader.
+ * @param text
+ */
+function addLineNumbers(text) {
+    var lines = text.split('\n');
+    for (var ii = 0; ii < lines.length; ii = ii + 1) {
+        lines[ii] = ii + 1 + ": " + lines[ii];
+    }
+    return lines.join('\n');
+}
+/**
+ * compile webgl shader
+ * @param gl
+ * @param glType
+ * @param shaderSource
+ */
+function compileGLShader(gl, glType, shaderSource) {
+    var shader = gl.createShader(glType);
+    gl.shaderSource(shader, shaderSource);
+    gl.compileShader(shader);
+    if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        return shader;
+    }
+    else {
+        console.warn("[WebGLShader]: Shader couldn't compile.1");
+        if (gl.getShaderInfoLog(shader) !== '') {
+            console.warn('[WebGLShader]: gl.getShaderInfoLog()', glType === gl.VERTEX_SHADER ? 'vertex' : 'fragment', gl.getShaderInfoLog(shader), addLineNumbers(shaderSource));
+            return undefined;
+        }
+    }
+}
+/**
+ *
+ * @param gl
+ * @param vertexShaderSrc
+ * @param fragmentShaderSrc
+ */
+function createProgram(gl, vertexShaderSrc, fragmentShaderSrc) {
+    var program = gl.createProgram();
+    var vertexShader = compileGLShader(gl, gl.VERTEX_SHADER, vertexShaderSrc);
+    var fragmentShader = compileGLShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSrc);
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    try {
+        var success = gl.getProgramParameter(program, gl.LINK_STATUS);
+        if (!success) {
+            throw gl.getProgramInfoLog(program);
+        }
+    }
+    catch (error) {
+        console.warn("WebGLProgram: " + error);
+    }
+    return program;
+}
+/**
+ *
+ * create buffer and get location from program
+ *
+ * @param gl
+ * @param program
+ * @param data
+ * @param str
+ *
+ * @returns uniformLocation
+ */
+function createBufferWithLocation(gl, program, data, str$$1) {
+    var buffer = gl.createBuffer();
+    var location = gl.getAttribLocation(program, str$$1);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    return { buffer: buffer, location: location };
+}
+/**
+ *
+ * @param gl
+ * @param data
+ */
+function createBuffer(gl, data) {
+    var buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    return buffer;
+}
+/**
+ *
+ * make  index buffer
+ *
+ * @param gl
+ * @param indices
+ */
+function createIndex(gl, indices) {
+    var buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+    var cnt = indices.length;
+    return { cnt: cnt, buffer: buffer };
+}
+/**
+ *
+ * @param {WebGLRenderingContext} gl
+ * @param {WebGLBuffer} buffer
+ * @param {Number} location
+ * @param {Number} size
+ * @param {Boolean} normalized
+ * @param {Number} stride
+ * @param {Number} offset
+ */
+function bindBuffer(gl, buffer, location, size, type, normalized, stride, offset) {
+    if (location === void 0) { location = 0; }
+    if (size === void 0) { size = 1; }
+    if (type === void 0) { type = FLOAT; }
+    if (normalized === void 0) { normalized = false; }
+    if (stride === void 0) { stride = 0; }
+    if (offset === void 0) { offset = 0; }
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.vertexAttribPointer(location, size, type, normalized, stride, offset);
+    gl.enableVertexAttribArray(location);
+}
+function generateFaceFromIndex(vertices, index) { }
+function castMouse(mouse, viewMatrixInverse, projectionMatrixInverse, depth) {
+    if (depth === void 0) { depth = 0; }
+    var clipSpace = fromValues$4(mouse[0], mouse[1], depth);
+    var cameraSpace = create$4();
+    var worldSpace = create$4();
+    transformMat4(cameraSpace, clipSpace, projectionMatrixInverse);
+    transformMat4(worldSpace, cameraSpace, viewMatrixInverse);
+    return worldSpace;
+}
+
+/**
+ *
+ * @param gl
+ * @param textureWidth
+ * @param textureHeight
+ * @param format
+ * @param minFilter
+ * @param magFilter
+ * @param wrapS
+ * @param wrapT
+ * @param type
+ */
+function createEmptyTexture(gl, textureWidth, textureHeight, format, minFilter, magFilter, wrapS, wrapT, type) {
+    if (format === void 0) { format = RGB; }
+    if (minFilter === void 0) { minFilter = LINEAR; }
+    if (magFilter === void 0) { magFilter = LINEAR; }
+    if (wrapS === void 0) { wrapS = CLAMP_TO_EDGE; }
+    if (wrapT === void 0) { wrapT = CLAMP_TO_EDGE; }
+    if (type === void 0) { type = UNSIGNED_BYTE; }
+    var targetTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+    // define size and format of level 0
+    var level = 0;
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
+    gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureHeight, 0, format, type, null);
+    // set the filtering so we don't need mips
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapS);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapT);
+    return targetTexture;
+}
+function createImageTexture(gl, canvasImage, format, isFlip, isMipmap) {
+    if (format === void 0) { format = RGB; }
+    if (isFlip === void 0) { isFlip = false; }
+    if (isMipmap === void 0) { isMipmap = false; }
+    var texture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, isFlip ? 0 : 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, canvasImage);
+    if (isPowerOf2(canvasImage.width) && isPowerOf2(canvasImage.height) && isMipmap) {
+        // Yes, it's a power of 2. Generate mips.
+        gl.generateMipmap(gl.TEXTURE_2D);
+    }
+    else {
+        // No, it's not a power of 2. Turn of mips and set
+        // wrapping to clamp to edge
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    }
+    return texture;
+}
+function isPowerOf2(value) {
+    return (value & (value - 1)) === 0;
+}
+/**
+ *
+ * @param gl
+ * @param texture
+ * @param image
+ * @param format
+ */
+function updateImageTexture(gl, texture, image, format) {
+    if (format === void 0) { format = RGB; }
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, image);
+    if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+        // Yes, it's a power of 2. Generate mips.
+        gl.generateMipmap(gl.TEXTURE_2D);
+    }
+    else {
+        // No, it's not a power of 2. Turn of mips and set
+        // wrapping to clamp to edge
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    }
+}
+/**
+ *
+ * @param gl
+ * @param texture
+ * @param uniformLocation
+ * @param textureNum
+ */
+function activeTexture(gl, texture, uniformLocation, textureNum) {
+    if (textureNum === void 0) { textureNum = 0; }
+    var activeTextureNum = gl.TEXTURE0 + textureNum;
+    gl.activeTexture(activeTextureNum);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(uniformLocation, textureNum);
+}
+
+/**
+ * load json with ajax
+ *
+ * @param url url to load json file
+ */
+function getAjaxJson(url, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                var resp = xhr.responseText;
+                var respJson = JSON.parse(resp);
+                callback(respJson);
+                // resolve(respJson);
+            }
+        }
+    };
+    xhr.send();
+}
+/**
+ *
+ * @param imageUrl
+ */
+function getImage(imageUrl, callback) {
+    var image = new Image();
+    image.onload = function () {
+        callback(image);
+    };
+    image.onerror = function () {
+        console.warn("image(" + imageUrl + ") load err");
+    };
+    image.src = imageUrl;
+}
+/**
+ *
+ * @param dracoUrl
+ * @param callback
+ *
+ * https://github.com/kioku-systemk/dracoSample/blob/5611528416d4e0afb10cbec52d70493602d8a552/dracoloader.js#L210
+ *
+ */
+function loadDraco(dracoUrl, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.responseType = 'arraybuffer';
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200 || xhr.status === 0) {
+                callback(xhr.response);
+            }
+            else {
+                console.error("Couldn't load [" + dracoUrl + '] [' + xhr.status + ']');
+            }
+        }
+    };
+    xhr.open('GET', dracoUrl, true);
+    xhr.send(null);
+}
+
+function getSphere(radius, latitudeBands, longitudeBands) {
+    if (radius === void 0) { radius = 2; }
+    if (latitudeBands === void 0) { latitudeBands = 64; }
+    if (longitudeBands === void 0) { longitudeBands = 64; }
+    var vertices = [];
+    var textures = [];
+    var normals = [];
+    var indices = [];
+    for (var latNumber = 0; latNumber <= latitudeBands; latNumber = latNumber + 1) {
+        var theta = (latNumber * Math.PI) / latitudeBands;
+        var sinTheta = Math.sin(theta);
+        var cosTheta = Math.cos(theta);
+        for (var longNumber = 0; longNumber <= longitudeBands; longNumber = longNumber + 1) {
+            var phi = (longNumber * 2 * Math.PI) / longitudeBands;
+            var sinPhi = Math.sin(phi);
+            var cosPhi = Math.cos(phi);
+            var x = cosPhi * sinTheta;
+            var y = cosTheta;
+            var z = sinPhi * sinTheta;
+            var u = 1 - longNumber / longitudeBands;
+            var v = 1 - latNumber / latitudeBands;
+            normals.push(x, y, z);
+            textures.push(u, v);
+            vertices.push(radius * x, radius * y, radius * z);
+        }
+    }
+    for (var latNumber = 0; latNumber < latitudeBands; latNumber = latNumber + 1) {
+        for (var longNumber = 0; longNumber < longitudeBands; longNumber = longNumber + 1) {
+            var first = latNumber * (longitudeBands + 1) + longNumber;
+            var second = first + longitudeBands + 1;
+            indices.push(second, first, first + 1, second + 1, second, first + 1);
+        }
+    }
+    return {
+        vertices: vertices,
+        uvs: textures,
+        normals: normals,
+        indices: indices
+    };
+}
+function getPlane(width, height, widthSegment, heightSegment) {
+    var vertices = [];
+    var uvs = [];
+    var xRate = 1 / widthSegment;
+    var yRate = 1 / heightSegment;
+    // set vertices and barycentric vertices
+    for (var yy = 0; yy <= heightSegment; yy++) {
+        var yPos = (-0.5 + yRate * yy) * height;
+        for (var xx = 0; xx <= widthSegment; xx++) {
+            var xPos = (-0.5 + xRate * xx) * width;
+            vertices.push(xPos);
+            vertices.push(yPos);
+            uvs.push(xx / widthSegment);
+            uvs.push(yy / heightSegment);
+        }
+    }
+    var indices = [];
+    for (var yy = 0; yy < heightSegment; yy++) {
+        for (var xx = 0; xx < widthSegment; xx++) {
+            var rowStartNum = yy * (widthSegment + 1);
+            var nextRowStartNum = (yy + 1) * (widthSegment + 1);
+            indices.push(rowStartNum + xx);
+            indices.push(rowStartNum + xx + 1);
+            indices.push(nextRowStartNum + xx);
+            indices.push(rowStartNum + xx + 1);
+            indices.push(nextRowStartNum + xx + 1);
+            indices.push(nextRowStartNum + xx);
+        }
+    }
+    return {
+        vertices: vertices,
+        uvs: uvs,
+        indices: indices
+    };
+}
+function mergeGeomtory(geometries) {
+    var vertices = [];
+    var normals = [];
+    var uvs = [];
+    var indices = [];
+    var lastVertices = 0;
+    for (var ii = 0; ii < geometries.length; ii++) {
+        var geometry = geometries[ii];
+        if (geometry.indices.length > 0) {
+            for (var ii_1 = 0; ii_1 < geometry.indices.length; ii_1++) {
+                indices.push(geometry.indices[ii_1] + lastVertices / 3);
+            }
+        }
+        if (geometry.vertices.length > 0) {
+            for (var ii_2 = 0; ii_2 < geometry.vertices.length; ii_2++) {
+                vertices.push(geometry.vertices[ii_2]);
+            }
+            lastVertices += geometry.vertices.length;
+        }
+        if (geometry.normals.length > 0) {
+            for (var ii_3 = 0; ii_3 < geometry.normals.length; ii_3++) {
+                normals.push(geometry.normals[ii_3]);
+            }
+        }
+        if (geometry.uvs.length > 0) {
+            for (var ii_4 = 0; ii_4 < geometry.uvs.length; ii_4++) {
+                uvs.push(geometry.uvs[ii_4]);
+            }
+        }
+    }
+    return {
+        vertices: vertices,
+        normals: normals,
+        uvs: uvs,
+        indices: indices
+    };
+}
+
+// segment is one
+function createSimpleBox() {
+    var unit = 0.5;
+    var positions = [
+        // Front face
+        -unit, -unit, unit,
+        unit, -unit, unit,
+        unit, unit, unit,
+        -unit, unit, unit,
+        // Back face
+        -unit, -unit, -unit,
+        -unit, unit, -unit,
+        unit, unit, -unit,
+        unit, -unit, -unit,
+        // Top face
+        -unit, unit, -unit,
+        -unit, unit, unit,
+        unit, unit, unit,
+        unit, unit, -unit,
+        // Bottom face
+        -unit, -unit, -unit,
+        unit, -unit, -unit,
+        unit, -unit, unit,
+        -unit, -unit, unit,
+        // Right face
+        unit, -unit, -unit,
+        unit, unit, -unit,
+        unit, unit, unit,
+        unit, -unit, unit,
+        // Left face
+        -unit, -unit, -unit,
+        -unit, -unit, unit,
+        -unit, unit, unit,
+        -unit, unit, -unit,
+    ];
+    var indices = [
+        0, 1, 2, 0, 2, 3,
+        4, 5, 6, 4, 6, 7,
+        8, 9, 10, 8, 10, 11,
+        12, 13, 14, 12, 14, 15,
+        16, 17, 18, 16, 18, 19,
+        20, 21, 22, 20, 22, 23,
+    ];
+    var uvs = [
+        // Front
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+        // Back
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+        // Top
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+        // Bottom
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+        // Right
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+        // Left
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+    ];
+    var normals = [
+        // Front
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+        // Back
+        0.0, 0.0, -1.0,
+        0.0, 0.0, -1.0,
+        0.0, 0.0, -1.0,
+        0.0, 0.0, -1.0,
+        // Top
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+        // Bottom
+        0.0, -1.0, 0.0,
+        0.0, -1.0, 0.0,
+        0.0, -1.0, 0.0,
+        0.0, -1.0, 0.0,
+        // Right
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        // Left
+        -1.0, 0.0, 0.0,
+        -1.0, 0.0, 0.0,
+        -1.0, 0.0, 0.0,
+        -1.0, 0.0, 0.0
+    ];
+    return {
+        vertices: positions,
+        normals: normals,
+        uvs: uvs,
+        indices: indices
+    };
+}
+function createSimplePlane() {
+    var unit = 0.5;
+    var positions = [
+        -unit, -unit, 0.0,
+        unit, -unit, 0.0,
+        unit, unit, 0.0,
+        -unit, unit, 0.0
+    ];
+    var indices = [
+        0, 1, 2, 0, 2, 3,
+    ];
+    var uvs = [
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+    ];
+    var normals = [
+        // Front
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0
+    ];
+    return {
+        vertices: positions,
+        normals: normals,
+        uvs: uvs,
+        indices: indices
+    };
+}
+
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+}
+function range(min, max) {
+    return (max - min) * Math.random() + min;
+}
+// https://stackoverflow.com/questions/32861804/how-to-calculate-the-centre-point-of-a-circle-given-three-points
+function calculateCircleCenter(A, B, C) {
+    var yDeltaA = B.y - A.y;
+    var xDeltaA = B.x - A.x;
+    var yDeltaB = C.y - B.y;
+    var xDeltaB = C.x - B.x;
+    var center = { x: 0, y: 0, z: 0 };
+    var aSlope = yDeltaA / xDeltaA;
+    var bSlope = yDeltaB / xDeltaB;
+    center.x =
+        (aSlope * bSlope * (A.y - C.y) + bSlope * (A.x + B.x) - aSlope * (B.x + C.x)) /
+            (2 * (bSlope - aSlope));
+    center.y = (-1 * (center.x - (A.x + B.x) / 2)) / aSlope + (A.y + B.y) / 2;
+    return center;
+}
+function mix(x, y, a) {
+    return x * (1 - a) + y * a;
+}
+function degToRad(value) {
+    // Math.PI / 180 = 0.017453292519943295
+    return value * 0.017453292519943295;
+}
+function radToDeg(value) {
+    // 180 / Math.PI = 57.29577951308232
+    return 57.29577951308232 * value;
+}
+
 var Ray = /** @class */ (function () {
     function Ray() {
         this.isPrev = false;
@@ -1462,7 +1560,6 @@ var Ray = /** @class */ (function () {
         return { tmin: tmin, tmax: tmax };
     };
     Ray.prototype.intersectFaces = function (faces) {
-        // let intersectFaceArr = [];
         var intersectFace;
         for (var ii = 0; ii < faces.length; ii++) {
             var pts = faces[ii];
@@ -1583,7 +1680,9 @@ var Camera = /** @class */ (function () {
         this.position = { x: 0, y: 0, z: 0 };
         this.lookAtPosition = { x: 0, y: 0, z: 0 };
         this.viewMatrix = create$3();
+        this.viewMatrixInverse = create$3();
         this.projectionMatrix = create$3();
+        this.projectionMatrixInverse = create$3();
         this.type = type;
     }
     Camera.prototype.updatePosition = function (xx, yy, zz) {
@@ -1604,6 +1703,7 @@ var Camera = /** @class */ (function () {
     };
     Camera.prototype.updateViewMatrix = function () {
         lookAt(this.viewMatrix, [this.position.x, this.position.y, this.position.z], [this.lookAtPosition.x, this.lookAtPosition.y, this.lookAtPosition.z], [0, 1, 0]);
+        invert$3(this.viewMatrixInverse, this.viewMatrix);
     };
     return Camera;
 }());
@@ -1625,6 +1725,7 @@ var PerspectiveCamera = /** @class */ (function (_super) {
     }
     PerspectiveCamera.prototype.updatePerspective = function () {
         perspective(this.projectionMatrix, (this.fov / 180) * Math.PI, this.width / this.height, this.near, this.far);
+        invert$3(this.projectionMatrixInverse, this.projectionMatrix);
     };
     PerspectiveCamera.prototype.updateSize = function (width, height) {
         this.width = width;
@@ -1674,6 +1775,7 @@ var OrthoCamera = /** @class */ (function (_super) {
     };
     OrthoCamera.prototype.updatePerspective = function () {
         ortho(this.projectionMatrix, this.left, this.right, this.bottom, this.top, this.near, this.far);
+        invert$3(this.projectionMatrixInverse, this.projectionMatrix);
     };
     return OrthoCamera;
 }(Camera));
@@ -2433,5 +2535,5 @@ var TextRendering = /** @class */ (function () {
     return TextRendering;
 }());
 
-export { getUniformLocations, addLineNumbers, compileGLShader, createProgram, createBufferWithLocation, createBuffer, createIndex, bindBuffer, createEmptyTexture, createImageTexture, updateImageTexture, activeTexture, getAjaxJson, getImage, loadDraco, getSphere, getPlane, mergeGeomtory, createSimpleBox, createSimplePlane, FLOAT, RGB, NEAREST, LINEAR, NEAREST_MIPMAP_NEAREST, LINEAR_MIPMAP_NEAREST, NEAREST_MIPMAP_LINEAR, LINEAR_MIPMAP_LINEAR, CLAMP_TO_EDGE, REPEAT, DEPTH_COMPONENT16, UNSIGNED_BYTE, clamp, range, calculateCircleCenter, mix, degToRad, radToDeg, Ray, Camera, PerspectiveCamera, OrthoCamera, CameraController, TextLayout, TextLines, TextRendering };
+export { getUniformLocations, addLineNumbers, compileGLShader, createProgram, createBufferWithLocation, createBuffer, createIndex, bindBuffer, generateFaceFromIndex, castMouse, createEmptyTexture, createImageTexture, updateImageTexture, activeTexture, getAjaxJson, getImage, loadDraco, getSphere, getPlane, mergeGeomtory, createSimpleBox, createSimplePlane, FLOAT, RGB, NEAREST, LINEAR, NEAREST_MIPMAP_NEAREST, LINEAR_MIPMAP_NEAREST, NEAREST_MIPMAP_LINEAR, LINEAR_MIPMAP_LINEAR, CLAMP_TO_EDGE, REPEAT, DEPTH_COMPONENT16, UNSIGNED_BYTE, clamp, range, calculateCircleCenter, mix, degToRad, radToDeg, Ray, Camera, PerspectiveCamera, OrthoCamera, CameraController, TextLayout, TextLines, TextRendering };
 //# sourceMappingURL=dan-shari-gl.es5.js.map

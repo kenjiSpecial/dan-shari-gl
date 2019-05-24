@@ -1,21 +1,19 @@
-import { vec3 } from 'gl-matrix';
+import { vec3, mat4 } from 'gl-matrix';
 import { Box, Vector3 } from '../interfaces/interface';
 
 export class Ray {
 	private isPrev: boolean = false;
-	private dir: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
-	private orig: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
-	private origVec: vec3 = vec3.create();
-	private dirVec: vec3 = vec3.create();
+	private orig: vec3 = vec3.create();
+	private dir: vec3 = vec3.create();
 
 	intersect(box: Box) {
 		let { min, max } = box;
 
-		let tmin = (min.x - this.orig.x) / this.dir.x;
-		let tmax = (max.x - this.orig.x) / this.dir.x;
+		let tmin = (min.x - this.orig[0]) / this.dir[0];
+		let tmax = (max.x - this.orig[0]) / this.dir[0];
 
-		let minY = tmin * this.dir.y + this.orig.y;
-		let maxY = tmax * this.dir.y + this.orig.y;
+		let minY = tmin * this.dir[1] + this.orig[1];
+		let maxY = tmax * this.dir[1] + this.orig[1];
 
 		if (minY > maxY) {
 			let { minVal, maxVal } = this.swap(minY, maxY);
@@ -26,8 +24,8 @@ export class Ray {
 			return false;
 		}
 
-		let minZ = tmin * this.dir.z + this.orig.z;
-		let maxZ = tmax * this.dir.z + this.orig.z;
+		let minZ = tmin * this.dir[2] + this.orig[2];
+		let maxZ = tmax * this.dir[2] + this.orig[2];
 
 		if (minZ > maxZ) {
 			let { minVal, maxVal } = this.swap(minZ, maxZ);
@@ -44,12 +42,20 @@ export class Ray {
 		return { tmin, tmax };
 	}
 
-	intersectFaces(faces: [vec3, vec3, vec3][]) {
-		// let intersectFaceArr = [];
+	raycast(faces: [vec3, vec3, vec3][], worldMatrixInv: mat4) {
+		const transDir = vec3.create();
+		const transOrig = vec3.create();
+		vec3.transformMat4(transDir, this.dir, worldMatrixInv);
+		vec3.transformMat4(transOrig, this.orig, worldMatrixInv);
+
+		this.intersectFaces(faces, transDir, transOrig);
+	}
+
+	intersectFaces(faces: [vec3, vec3, vec3][], dir: vec3, orig: vec3) {
 		let intersectFace;
 		for (let ii = 0; ii < faces.length; ii++) {
 			let pts = faces[ii];
-			let intersect = this.intersectPts(pts[0], pts[1], pts[2]);
+			let intersect = this.intersectPts(pts[0], pts[1], pts[2], dir, orig);
 			if (intersect) {
 				if (!intersectFace || intersectFace.t > intersect.t) intersectFace = intersect;
 			}
@@ -61,7 +67,7 @@ export class Ray {
 	// https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution
 	// https://stackoverflow.com/questions/42740765/intersection-between-line-and-triangle-in-3d
 
-	intersectPts(pt0: vec3, pt1: vec3, pt2: vec3) {
+	intersectPts(pt0: vec3, pt1: vec3, pt2: vec3, dir: vec3, orig: vec3) {
 		let dir0Vec = vec3.create();
 		let dir1Vec = vec3.create();
 		let nVec = vec3.create();
@@ -71,14 +77,10 @@ export class Ray {
 		vec3.cross(nVec, dir0Vec, dir1Vec);
 		let D = -this.dot(nVec, pt0);
 
-		if (Math.abs(this.dot(this.dirVec, nVec)) < Number.EPSILON) return false;
+		if (Math.abs(this.dot(dir, nVec)) < Number.EPSILON) return false;
 
-		let t = -(this.dot(nVec, this.origVec) + D) / this.dot(nVec, this.dirVec);
-		let intersectPt = [
-			this.dirVec[0] * t + this.origVec[0],
-			this.dirVec[1] * t + this.origVec[1],
-			this.dirVec[2] * t + this.origVec[2]
-		];
+		let t = -(this.dot(nVec, orig) + D) / this.dot(nVec, dir);
+		let intersectPt = [dir[0] * t + orig[0], dir[1] * t + orig[1], dir[2] * t + orig[2]];
 
 		let dir0 = [pt1[0] - pt0[0], pt1[1] - pt0[1], pt1[2] - pt0[2]];
 		let intersectPt0 = [
@@ -120,10 +122,8 @@ export class Ray {
 		let dir = vec3.create();
 		vec3.subtract(dir, endPt, startPt);
 		vec3.normalize(dir, dir);
-		this.dir = { x: dir[0], y: dir[1], z: dir[2] };
-		this.dirVec = dir;
-		this.orig = { x: startPt[0], y: startPt[1], z: startPt[2] };
-		this.origVec = startPt;
+		this.dir = dir;
+		this.orig = startPt;
 	}
 
 	swap(valA: number, valB: number) {

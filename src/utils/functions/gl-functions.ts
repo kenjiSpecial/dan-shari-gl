@@ -1,4 +1,6 @@
 import { FLOAT } from '../common/constants';
+import { vec2, vec3, mat4 } from 'gl-matrix';
+import { Camera } from '../../camera/camera';
 
 interface IUniformObject {
 	[key: string]: WebGLUniformLocation;
@@ -183,4 +185,50 @@ export function bindBuffer(
 	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 	gl.vertexAttribPointer(location, size, type, normalized, stride, offset);
 	gl.enableVertexAttribArray(location);
+}
+
+export function generateFaceFromIndex(vertices: number[], indices: number[]) {
+	const faces: [vec3, vec3, vec3][] = [];
+
+	for (let ii = 0; ii < indices.length; ii = ii + 3) {
+		let index0 = indices[ii];
+		let index1 = indices[ii + 1];
+		let index2 = indices[ii + 2];
+
+		faces.push([
+			vec3.fromValues(
+				vertices[3 * index0],
+				vertices[3 * index0 + 1],
+				vertices[3 * index0 + 2]
+			),
+			vec3.fromValues(
+				vertices[3 * index1],
+				vertices[3 * index1 + 1],
+				vertices[3 * index1 + 2]
+			),
+			vec3.fromValues(
+				vertices[3 * index2],
+				vertices[3 * index2 + 1],
+				vertices[3 * index2 + 2]
+			)
+		]);
+	}
+
+	return faces;
+}
+
+export function castMouse(
+	mouse: vec2,
+	viewMatrixInverse: mat4,
+	projectionMatrixInverse: mat4,
+	depth: number = 0
+) {
+	const clipSpace = vec3.fromValues(mouse[0], mouse[1], depth);
+	const cameraSpace = vec3.create();
+	const worldSpace = vec3.create();
+
+	vec3.transformMat4(cameraSpace, clipSpace, projectionMatrixInverse);
+	vec3.transformMat4(worldSpace, cameraSpace, viewMatrixInverse);
+
+	return worldSpace;
 }
