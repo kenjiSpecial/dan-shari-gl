@@ -8,15 +8,15 @@ https://kenjispecial.github.io/dan-shari-gl/
 
 ### API Documents
 
-[https://kenjispecial.github.io/dan-shari-gl/documents/](https://kenjispecial.github.io/dan-shari-gl/documents/)
+[dan-shari-gl/documents/](https://kenjispecial.github.io/dan-shari-gl/documents/)
 
 ### Examples
 
-[https://kenjispecial.github.io/dan-shari-gl/examples](https://kenjispecial.github.io/dan-shari-gl/examples)
+[dan-shari-gl/examples](https://kenjispecial.github.io/dan-shari-gl/examples)
 
 ### Tools
 
--  [dan-shari-gl-mesh-generator](https://github.com/kenjiSpecial/dan-shari-gl-mesh-generator)
+-   [dan-shari-gl-mesh-generator](https://github.com/kenjiSpecial/dan-shari-gl-mesh-generator)
 
 ##### this library is being developed with [alexjoverm/typescript-library-starter](alexjoverm/typescript-library-starter)
 
