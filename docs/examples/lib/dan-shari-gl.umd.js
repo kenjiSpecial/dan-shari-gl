@@ -21,6 +21,7 @@
   // Data types
   // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#Data_types
   var UNSIGNED_BYTE = 0x1401;
+  //# sourceMappingURL=constants.js.map
 
   /**
    * Common utilities
@@ -57,6 +58,26 @@
     out[0] = 1;
     out[4] = 1;
     out[8] = 1;
+    return out;
+  }
+  /**
+   * Copies the upper-left 3x3 values into the given mat3.
+   *
+   * @param {mat3} out the receiving 3x3 matrix
+   * @param {mat4} a   the source 4x4 matrix
+   * @returns {mat3} out
+   */
+
+  function fromMat4(out, a) {
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[4];
+    out[4] = a[5];
+    out[5] = a[6];
+    out[6] = a[8];
+    out[7] = a[9];
+    out[8] = a[10];
     return out;
   }
 
@@ -486,6 +507,24 @@
     out[0] = (m[0] * x + m[4] * y + m[8] * z + m[12]) / w;
     out[1] = (m[1] * x + m[5] * y + m[9] * z + m[13]) / w;
     out[2] = (m[2] * x + m[6] * y + m[10] * z + m[14]) / w;
+    return out;
+  }
+  /**
+   * Transforms the vec3 with a mat3.
+   *
+   * @param {vec3} out the receiving vector
+   * @param {vec3} a the vector to transform
+   * @param {mat3} m the 3x3 matrix to transform with
+   * @returns {vec3} out
+   */
+
+  function transformMat3(out, a, m) {
+    var x = a[0],
+        y = a[1],
+        z = a[2];
+    out[0] = x * m[0] + y * m[3] + z * m[6];
+    out[1] = x * m[1] + y * m[4] + z * m[7];
+    out[2] = x * m[2] + y * m[5] + z * m[8];
     return out;
   }
   /**
@@ -1072,7 +1111,20 @@
       gl.vertexAttribPointer(location, size, type, normalized, stride, offset);
       gl.enableVertexAttribArray(location);
   }
-  function generateFaceFromIndex(vertices, index) { }
+  function generateFaceFromIndex(vertices, indices) {
+      var faces = [];
+      for (var ii = 0; ii < indices.length; ii = ii + 3) {
+          var index0 = indices[ii];
+          var index1 = indices[ii + 1];
+          var index2 = indices[ii + 2];
+          faces.push([
+              fromValues$4(vertices[3 * index0], vertices[3 * index0 + 1], vertices[3 * index0 + 2]),
+              fromValues$4(vertices[3 * index1], vertices[3 * index1 + 1], vertices[3 * index1 + 2]),
+              fromValues$4(vertices[3 * index2], vertices[3 * index2 + 1], vertices[3 * index2 + 2])
+          ]);
+      }
+      return faces;
+  }
   function castMouse(mouse, viewMatrixInverse, projectionMatrixInverse, depth) {
       if (depth === void 0) { depth = 0; }
       var clipSpace = fromValues$4(mouse[0], mouse[1], depth);
@@ -1082,6 +1134,7 @@
       transformMat4(worldSpace, cameraSpace, viewMatrixInverse);
       return worldSpace;
   }
+  //# sourceMappingURL=gl-functions.js.map
 
   /**
    *
@@ -1178,6 +1231,7 @@
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.uniform1i(uniformLocation, textureNum);
   }
+  //# sourceMappingURL=gl-textures.js.map
 
   /**
    * load json with ajax
@@ -1237,6 +1291,7 @@
       xhr.open('GET', dracoUrl, true);
       xhr.send(null);
   }
+  //# sourceMappingURL=assets-functions.js.map
 
   function getSphere(radius, latitudeBands, longitudeBands) {
       if (radius === void 0) { radius = 2; }
@@ -1350,6 +1405,7 @@
           indices: indices
       };
   }
+  //# sourceMappingURL=generateGeometry.js.map
 
   // segment is one
   function createSimpleBox() {
@@ -1496,6 +1552,7 @@
           indices: indices
       };
   }
+  //# sourceMappingURL=generateSimpleGeometry.js.map
 
   function clamp(value, min, max) {
       return Math.min(Math.max(value, min), max);
@@ -1529,21 +1586,20 @@
       // 180 / Math.PI = 57.29577951308232
       return 57.29577951308232 * value;
   }
+  //# sourceMappingURL=math.js.map
 
   var Ray = /** @class */ (function () {
       function Ray() {
           this.isPrev = false;
-          this.dir = { x: 0, y: 0, z: 0 };
-          this.orig = { x: 0, y: 0, z: 0 };
-          this.origVec = create$4();
-          this.dirVec = create$4();
+          this.orig = create$4();
+          this.dir = create$4();
       }
       Ray.prototype.intersect = function (box) {
           var min$$1 = box.min, max$$1 = box.max;
-          var tmin = (min$$1.x - this.orig.x) / this.dir.x;
-          var tmax = (max$$1.x - this.orig.x) / this.dir.x;
-          var minY = tmin * this.dir.y + this.orig.y;
-          var maxY = tmax * this.dir.y + this.orig.y;
+          var tmin = (min$$1.x - this.orig[0]) / this.dir[0];
+          var tmax = (max$$1.x - this.orig[0]) / this.dir[0];
+          var minY = tmin * this.dir[1] + this.orig[1];
+          var maxY = tmax * this.dir[1] + this.orig[1];
           if (minY > maxY) {
               var _a = this.swap(minY, maxY), minVal = _a.minVal, maxVal = _a.maxVal;
               minY = minVal;
@@ -1552,8 +1608,8 @@
           if (minY > max$$1.y || maxY < min$$1.y) {
               return false;
           }
-          var minZ = tmin * this.dir.z + this.orig.z;
-          var maxZ = tmax * this.dir.z + this.orig.z;
+          var minZ = tmin * this.dir[2] + this.orig[2];
+          var maxZ = tmax * this.dir[2] + this.orig[2];
           if (minZ > maxZ) {
               var _b = this.swap(minZ, maxZ), minVal = _b.minVal, maxVal = _b.maxVal;
               minZ = minVal;
@@ -1565,11 +1621,21 @@
           this.isPrev = true;
           return { tmin: tmin, tmax: tmax };
       };
-      Ray.prototype.intersectFaces = function (faces) {
+      Ray.prototype.rayCast = function (faces, worldMatrixInv) {
+          var transDir = create$4();
+          var transOrig = create$4();
+          var worldMatrix3Inv = create$2();
+          fromMat4(worldMatrix3Inv, worldMatrixInv);
+          transformMat3(transDir, this.dir, worldMatrix3Inv);
+          normalize(transDir, transDir);
+          transformMat4(transOrig, this.orig, worldMatrixInv);
+          return this.intersectFaces(faces, transDir, transOrig);
+      };
+      Ray.prototype.intersectFaces = function (faces, dir, orig) {
           var intersectFace;
           for (var ii = 0; ii < faces.length; ii++) {
               var pts = faces[ii];
-              var intersect = this.intersectPts(pts[0], pts[1], pts[2]);
+              var intersect = this.intersectPts(pts[0], pts[1], pts[2], dir, orig);
               if (intersect) {
                   if (!intersectFace || intersectFace.t > intersect.t)
                       intersectFace = intersect;
@@ -1579,7 +1645,7 @@
       };
       // https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution
       // https://stackoverflow.com/questions/42740765/intersection-between-line-and-triangle-in-3d
-      Ray.prototype.intersectPts = function (pt0, pt1, pt2) {
+      Ray.prototype.intersectPts = function (pt0, pt1, pt2, dir, orig) {
           var dir0Vec = create$4();
           var dir1Vec = create$4();
           var nVec = create$4();
@@ -1587,14 +1653,10 @@
           subtract$4(dir1Vec, pt2, pt0);
           cross(nVec, dir0Vec, dir1Vec);
           var D = -this.dot(nVec, pt0);
-          if (Math.abs(this.dot(this.dirVec, nVec)) < Number.EPSILON)
+          if (Math.abs(this.dot(dir, nVec)) < Number.EPSILON)
               return false;
-          var t = -(this.dot(nVec, this.origVec) + D) / this.dot(nVec, this.dirVec);
-          var intersectPt = [
-              this.dirVec[0] * t + this.origVec[0],
-              this.dirVec[1] * t + this.origVec[1],
-              this.dirVec[2] * t + this.origVec[2]
-          ];
+          var t = -(this.dot(nVec, orig) + D) / this.dot(nVec, dir);
+          var intersectPt = [dir[0] * t + orig[0], dir[1] * t + orig[1], dir[2] * t + orig[2]];
           var dir0 = [pt1[0] - pt0[0], pt1[1] - pt0[1], pt1[2] - pt0[2]];
           var intersectPt0 = [
               intersectPt[0] - pt0[0],
@@ -1630,14 +1692,12 @@
               return false;
           return { t: t, pt: intersectPt };
       };
-      Ray.prototype.rayFromPts = function (startPt, endPt) {
+      Ray.prototype.calcDirection = function (startPt, endPt) {
           var dir = create$4();
           subtract$4(dir, endPt, startPt);
           normalize(dir, dir);
-          this.dir = { x: dir[0], y: dir[1], z: dir[2] };
-          this.dirVec = dir;
-          this.orig = { x: startPt[0], y: startPt[1], z: startPt[2] };
-          this.origVec = startPt;
+          this.dir = dir;
+          this.orig = startPt;
       };
       Ray.prototype.swap = function (valA, valB) {
           var tempVal = valA;
@@ -1785,6 +1845,7 @@
       };
       return OrthoCamera;
   }(Camera));
+  //# sourceMappingURL=camera.js.map
 
   var DampedAction = /** @class */ (function () {
       function DampedAction() {
@@ -2182,6 +2243,7 @@
       };
       return CameraController;
   }());
+  //# sourceMappingURL=cameracontroller.js.map
 
   // convert layout-bmfont-text into layout
   // https://github.com/Jam3/layout-bmfont-text
@@ -2510,6 +2572,7 @@
       }
       return 0;
   }
+  //# sourceMappingURL=textLayout.js.map
 
   var TextRendering = /** @class */ (function () {
       function TextRendering(gl, textLayout, bitmapImage) {
@@ -2540,6 +2603,9 @@
       }
       return TextRendering;
   }());
+  //# sourceMappingURL=textRendering.js.map
+
+  //# sourceMappingURL=dan-shari-gl.js.map
 
   exports.getUniformLocations = getUniformLocations;
   exports.addLineNumbers = addLineNumbers;

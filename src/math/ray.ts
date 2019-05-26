@@ -1,10 +1,11 @@
-import { vec3, mat4 } from 'gl-matrix';
+import { vec3, mat4, mat3 } from 'gl-matrix';
 import { Box, Vector3 } from '../interfaces/interface';
 
 export class Ray {
 	private isPrev: boolean = false;
 	private orig: vec3 = vec3.create();
 	private dir: vec3 = vec3.create();
+	private worldMatrix3Inv: mat3 = mat3.create();
 
 	intersect(box: Box) {
 		let { min, max } = box;
@@ -42,13 +43,16 @@ export class Ray {
 		return { tmin, tmax };
 	}
 
-	raycast(faces: [vec3, vec3, vec3][], worldMatrixInv: mat4) {
+	rayCast(faces: [vec3, vec3, vec3][], worldMatrixInv: mat4) {
 		const transDir = vec3.create();
 		const transOrig = vec3.create();
-		vec3.transformMat4(transDir, this.dir, worldMatrixInv);
+
+		mat3.fromMat4(this.worldMatrix3Inv, worldMatrixInv);
+		vec3.transformMat3(transDir, this.dir, this.worldMatrix3Inv);
+		vec3.normalize(transDir, transDir);
 		vec3.transformMat4(transOrig, this.orig, worldMatrixInv);
 
-		this.intersectFaces(faces, transDir, transOrig);
+		return this.intersectFaces(faces, transDir, transOrig);
 	}
 
 	intersectFaces(faces: [vec3, vec3, vec3][], dir: vec3, orig: vec3) {
@@ -118,7 +122,7 @@ export class Ray {
 		return { t: t, pt: intersectPt };
 	}
 
-	rayFromPts(startPt: vec3, endPt: vec3) {
+	calcDirection(startPt: vec3, endPt: vec3) {
 		let dir = vec3.create();
 		vec3.subtract(dir, endPt, startPt);
 		vec3.normalize(dir, dir);

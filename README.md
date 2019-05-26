@@ -16,4 +16,4 @@ URL: [https://kenjispecial.github.io/dan-shari-gl/examples](https://kenjispecial
 
 -   [dan-shari-gl-mesh-generator](https://github.com/kenjiSpecial/dan-shari-gl-mesh-generator)
 
-##### this library is being developed based on [alexjoverm/typescript-library-starter](alexjoverm/typescript-library-starter)
+##### this library is being developed with [alexjoverm/typescript-library-starter](alexjoverm/typescript-library-starter)

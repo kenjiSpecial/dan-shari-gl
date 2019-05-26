@@ -41,7 +41,7 @@
 	/>
 
 	<body>
-		<div class="dsr-desc"><p class="dsr-p">#00 - rendering sphere</p></div>
+		<div class="dsr-desc"><p class="dsr-p">#07 - cast mouse</p></div>
 
 		<script src="./vendors/dat.gui.min.js"></script>
 		<script src="./vendors/stats.min.js"></script>
@@ -206,7 +206,7 @@
 				gl.drawElements(gl.TRIANGLES, sphere.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
 
 
-				console.log(mouseArr.length);
+				
 				mouseArr.forEach(mouse=>{
 					var cameraSpace = dsr.castMouse(mouse, camera.viewMatrixInverse, camera.projectionMatrixInverse);
 				
