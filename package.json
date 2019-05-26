@@ -1,6 +1,6 @@
 {
 	"name": "dan-shari-gl",
-	"version": "1.2.2",
+	"version": "1.2.3",
 	"description": "minimum webgl framework",
 	"keywords": [],
 	"main": "dist/dan-shari-gl.umd.js",
