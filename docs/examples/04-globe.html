@@ -60,11 +60,12 @@
 			
 			        uniform mat4 uMVPMatrix;
 					uniform float uProgress;
+					uniform vec2 uWindow;
 
 			        varying vec3 vNormal;
 			
 			        void main() {
-						gl_Position = mix(twoPos, uMVPMatrix * position, clamp(uProgress * 1.2 - rate * 0.2, 0.0, 1.0) );
+						gl_Position = mix( vec4(twoPos.x * uWindow.x, twoPos.y * uWindow.y, twoPos.z, twoPos.w), uMVPMatrix * position, clamp(uProgress * 1.2 - rate * 0.2, 0.0, 1.0) );
 			            vNormal = normalize ( normal + vec3(1.) );
 			        }`;
 
@@ -87,7 +88,6 @@
 			var jsonUrl = './assets/json/ne-110m.json';
 			var canvas = document.createElement('canvas');
 			var gl = canvas.getContext('webgl');
-			// gl.enable(gl.CULLs_FACE);	
 			document.body.appendChild(canvas);
 
 			var viewportWidth, viewportHeight;
@@ -197,7 +197,8 @@
 				};
 				globe.rot = quat.create();
 				globe.angle = 0;
-				globe.uniforms = dsr.getUniformLocations(gl, globe.progoram, ['uMVPMatrix', 'uProgress', 'uIsNormal', 'uColor']);
+				globe.uniforms = dsr.getUniformLocations(gl, globe.progoram, ['uMVPMatrix', 'uProgress', 'uIsNormal', 'uColor', 'uWindow']);
+				console.log(globe.uniforms);
 			}
 
 			function parseMultiPolygon(geometryArr) {
@@ -437,13 +438,19 @@
 					gl.uniformMatrix4fv(globe.uniforms.uMVPMatrix, false, globe.matrix.mvpMatrix);
 					gl.uniform1f(globe.uniforms.uProgress, obj.progress);
 					gl.uniform1f(globe.uniforms.uIsNormal, true);
-
+					let wWid, wHig;
+					if(window.innerWidth > window.innerHeight){
+						wWid = window.innerHeight/window.innerWidth;
+						wHig =  1;
+					}else{
+						wWid = 1;
+						wHig = window.innerWidth/window.innerHeight;
+					}
+					gl.uniform2f(globe.uniforms.uWindow, wWid, wHig);
 					gl.drawElements(gl.TRIANGLES, globe.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
 
 
 					gl.uniform1f(globe.uniforms.uIsNormal, false);
-
-					
 					gl.uniform1f(globe.uniforms.uProgress, 1);
 					gl.uniform3f(globe.uniforms.uColor, 0.9, 0.9, 0.9);
 					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, globe.buffers.twoIndex.buffer);
@@ -452,11 +459,8 @@
 					gl.clear(gl.DEPTH_BUFFER_BIT);
 					gl.uniform1f(globe.uniforms.uProgress, 0);
 					gl.uniform1f(globe.uniforms.uIsNormal, false);
-					gl.uniform3f(globe.uniforms.uColor, 0.9, 0.9, 0.9);
 					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, globe.buffers.twoIndex.buffer);
-					gl.drawElements(gl.LINES, globe.buffers.twoIndex.cnt, gl.UNSIGNED_SHORT, 0);
-
-					
+					gl.drawElements(gl.LINES, globe.buffers.twoIndex.cnt, gl.UNSIGNED_SHORT, 0);					
 				}
 
 				loopId = requestAnimationFrame(tick);
