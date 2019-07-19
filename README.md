@@ -1,10 +1,13 @@
 # dan-shari-gl
 
+#### minimum webgl framework
+
+### Install
+
+`npm i dan-shari-gl --save`
+
 [![NPM version][dan-shari-gl-npm-image]][dan-shari-gl-npm-url]
 
-https://kenjispecial.github.io/dan-shari-gl/
-
-#### minimum webgl framework
 
 ### API Documents
 
