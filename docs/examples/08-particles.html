@@ -178,22 +178,15 @@
 						var opacity = this.buffers.opacity;
 						var gl = this.gl;
 
-						gl.bindBuffer(gl.ARRAY_BUFFER, position.buffer);
-						gl.bufferData(gl.ARRAY_BUFFER, this.positoinArray, gl.STATIC_DRAW);
-						gl.vertexAttribPointer(position.location, 3, gl.FLOAT, false, 0, 0);
-						gl.enableVertexAttribArray(position.location);
+						dsr.updateArrayBuffer(gl, position.buffer,  this.positoinArray, true);
+						dsr.bindBuffer(gl, position.buffer, position.location, 3, gl.FLOAT, false, 0, 0, false)
 
-						// dsr.bindBuffer(this.gl, size.buffer, size.location, 1);
+						dsr.updateArrayBuffer(gl, size.buffer,  this.sizeArray, true);
+						dsr.bindBuffer(gl, size.buffer, size.location, 1, gl.FLOAT, false, 0, 0, false)
 
-						gl.bindBuffer(gl.ARRAY_BUFFER, size.buffer);
-						gl.bufferData(gl.ARRAY_BUFFER, this.sizeArray, gl.STATIC_DRAW);
-						gl.vertexAttribPointer(size.location, 1, gl.FLOAT, false, 0, 0);
-						gl.enableVertexAttribArray(size.location);
+						dsr.updateArrayBuffer(gl, opacity.buffer,  this.opacityArray, true);
+						dsr.bindBuffer(gl, opacity.buffer, opacity.location, 1, gl.FLOAT, false, 0, 0, false)
 
-						gl.bindBuffer(gl.ARRAY_BUFFER, opacity.buffer);
-						gl.bufferData(gl.ARRAY_BUFFER, this.opacityArray, gl.STATIC_DRAW);
-						gl.vertexAttribPointer(opacity.location, 1, gl.FLOAT, false, 0, 0);
-						gl.enableVertexAttribArray(opacity.location);
 						this.gl.drawArrays(this.gl.POINTS, 0, this.size);
 					}
 				},

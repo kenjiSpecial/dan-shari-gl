@@ -21,3 +21,7 @@ export const DEPTH_COMPONENT16: number = 0x81a5;
 // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#Data_types
 
 export const UNSIGNED_BYTE: number = 0x1401;
+
+export const EMPTY_CANVAS_SIZE = 16;
+export const EMPTY_CANVAS_COLOR = '#ff0000';
+export const COLOR_REPEAT = 4;

@@ -132,6 +132,7 @@ export function createBufferWithLocation(
 }
 
 /**
+ * creates and initializes WebGLBuffer with data
  *
  * @param gl
  * @param data
@@ -143,6 +144,26 @@ export function createBuffer(gl: WebGLRenderingContext, data: Float32Array) {
 	gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
 
 	return buffer;
+}
+
+/**
+ * update array buffer
+ *
+ * @param gl
+ * @param buffer
+ * @param data
+ * @param isBind
+ */
+export function updateArrayBuffer(
+	gl: WebGLRenderingContext,
+	buffer: WebGLBuffer,
+	data: Float32Array,
+	isBind: boolean = true
+) {
+	if (isBind) {
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+	}
+	gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
 }
 
 /**
@@ -180,9 +201,12 @@ export function bindBuffer(
 	type: number = FLOAT,
 	normalized: boolean = false,
 	stride: number = 0,
-	offset: number = 0
+	offset: number = 0,
+	isBind: boolean = true
 ) {
-	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+	if (isBind) {
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+	}
 	gl.vertexAttribPointer(location, size, type, normalized, stride, offset);
 	gl.enableVertexAttribArray(location);
 }

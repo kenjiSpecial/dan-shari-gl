@@ -16,3 +16,4 @@ export * from './camera/camera';
 export * from './subComponents/cameracontroller';
 export * from './subComponents/textLayout';
 export * from './subComponents/textRendering';
+export * from './subComponents/TexturePool';

@@ -15,7 +15,9 @@ var DEPTH_COMPONENT16 = 0x81a5;
 // Data types
 // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#Data_types
 var UNSIGNED_BYTE = 0x1401;
-//# sourceMappingURL=constants.js.map
+var EMPTY_CANVAS_SIZE = 16;
+var EMPTY_CANVAS_COLOR = '#ff0000';
+var COLOR_REPEAT = 4;
 
 /**
  * Common utilities
@@ -37,7 +39,7 @@ var degree = Math.PI / 180;
  * @returns {mat3} a new 3x3 matrix
  */
 
-function create$2() {
+function create() {
   var out = new ARRAY_TYPE(9);
 
   if (ARRAY_TYPE != Float32Array) {
@@ -86,7 +88,7 @@ function fromMat4(out, a) {
  * @returns {mat4} a new 4x4 matrix
  */
 
-function create$3() {
+function create$1() {
   var out = new ARRAY_TYPE(16);
 
   if (ARRAY_TYPE != Float32Array) {
@@ -117,7 +119,7 @@ function create$3() {
  * @returns {mat4} out
  */
 
-function identity$3(out) {
+function identity(out) {
   out[0] = 1;
   out[1] = 0;
   out[2] = 0;
@@ -144,7 +146,7 @@ function identity$3(out) {
  * @returns {mat4} out
  */
 
-function invert$3(out, a) {
+function invert(out, a) {
   var a00 = a[0],
       a01 = a[1],
       a02 = a[2],
@@ -299,7 +301,7 @@ function lookAt(out, eye, center, up) {
   var centerz = center[2];
 
   if (Math.abs(eyex - centerx) < EPSILON && Math.abs(eyey - centery) < EPSILON && Math.abs(eyez - centerz) < EPSILON) {
-    return identity$3(out);
+    return identity(out);
   }
 
   z0 = eyex - centerx;
@@ -371,7 +373,7 @@ function lookAt(out, eye, center, up) {
  * @returns {vec3} a new 3D vector
  */
 
-function create$4() {
+function create$2() {
   var out = new ARRAY_TYPE(3);
 
   if (ARRAY_TYPE != Float32Array) {
@@ -383,19 +385,6 @@ function create$4() {
   return out;
 }
 /**
- * Calculates the length of a vec3
- *
- * @param {vec3} a vector to calculate length of
- * @returns {Number} length of a
- */
-
-function length(a) {
-  var x = a[0];
-  var y = a[1];
-  var z = a[2];
-  return Math.sqrt(x * x + y * y + z * z);
-}
-/**
  * Creates a new vec3 initialized with the given values
  *
  * @param {Number} x X component
@@ -404,7 +393,7 @@ function length(a) {
  * @returns {vec3} a new 3D vector
  */
 
-function fromValues$4(x, y, z) {
+function fromValues(x, y, z) {
   var out = new ARRAY_TYPE(3);
   out[0] = x;
   out[1] = y;
@@ -420,7 +409,7 @@ function fromValues$4(x, y, z) {
  * @returns {vec3} out
  */
 
-function subtract$4(out, a, b) {
+function subtract(out, a, b) {
   out[0] = a[0] - b[0];
   out[1] = a[1] - b[1];
   out[2] = a[2] - b[2];
@@ -449,17 +438,6 @@ function normalize(out, a) {
   out[1] = a[1] * len;
   out[2] = a[2] * len;
   return out;
-}
-/**
- * Calculates the dot product of two vec3's
- *
- * @param {vec3} a the first operand
- * @param {vec3} b the second operand
- * @returns {Number} dot product of a and b
- */
-
-function dot(a, b) {
-  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 /**
  * Computes the cross product of two vec3's
@@ -522,12 +500,6 @@ function transformMat3(out, a, m) {
   return out;
 }
 /**
- * Alias for {@link vec3.length}
- * @function
- */
-
-var len = length;
-/**
  * Perform some operation over an array of vec3s.
  *
  * @param {Array} a the array of vectors to iterate over
@@ -541,7 +513,7 @@ var len = length;
  */
 
 var forEach = function () {
-  var vec = create$4();
+  var vec = create$2();
   return function (a, stride, offset, count, fn, arg) {
     var i, l;
 
@@ -567,408 +539,6 @@ var forEach = function () {
       a[i] = vec[0];
       a[i + 1] = vec[1];
       a[i + 2] = vec[2];
-    }
-
-    return a;
-  };
-}();
-
-/**
- * 4 Dimensional Vector
- * @module vec4
- */
-
-/**
- * Creates a new, empty vec4
- *
- * @returns {vec4} a new 4D vector
- */
-
-function create$5() {
-  var out = new ARRAY_TYPE(4);
-
-  if (ARRAY_TYPE != Float32Array) {
-    out[0] = 0;
-    out[1] = 0;
-    out[2] = 0;
-    out[3] = 0;
-  }
-
-  return out;
-}
-/**
- * Normalize a vec4
- *
- * @param {vec4} out the receiving vector
- * @param {vec4} a vector to normalize
- * @returns {vec4} out
- */
-
-function normalize$1(out, a) {
-  var x = a[0];
-  var y = a[1];
-  var z = a[2];
-  var w = a[3];
-  var len = x * x + y * y + z * z + w * w;
-
-  if (len > 0) {
-    len = 1 / Math.sqrt(len);
-  }
-
-  out[0] = x * len;
-  out[1] = y * len;
-  out[2] = z * len;
-  out[3] = w * len;
-  return out;
-}
-/**
- * Perform some operation over an array of vec4s.
- *
- * @param {Array} a the array of vectors to iterate over
- * @param {Number} stride Number of elements between the start of each vec4. If 0 assumes tightly packed
- * @param {Number} offset Number of elements to skip at the beginning of the array
- * @param {Number} count Number of vec4s to iterate over. If 0 iterates over entire array
- * @param {Function} fn Function to call for each vector in the array
- * @param {Object} [arg] additional argument to pass to fn
- * @returns {Array} a
- * @function
- */
-
-var forEach$1 = function () {
-  var vec = create$5();
-  return function (a, stride, offset, count, fn, arg) {
-    var i, l;
-
-    if (!stride) {
-      stride = 4;
-    }
-
-    if (!offset) {
-      offset = 0;
-    }
-
-    if (count) {
-      l = Math.min(count * stride + offset, a.length);
-    } else {
-      l = a.length;
-    }
-
-    for (i = offset; i < l; i += stride) {
-      vec[0] = a[i];
-      vec[1] = a[i + 1];
-      vec[2] = a[i + 2];
-      vec[3] = a[i + 3];
-      fn(vec, vec, arg);
-      a[i] = vec[0];
-      a[i + 1] = vec[1];
-      a[i + 2] = vec[2];
-      a[i + 3] = vec[3];
-    }
-
-    return a;
-  };
-}();
-
-/**
- * Quaternion
- * @module quat
- */
-
-/**
- * Creates a new identity quat
- *
- * @returns {quat} a new quaternion
- */
-
-function create$6() {
-  var out = new ARRAY_TYPE(4);
-
-  if (ARRAY_TYPE != Float32Array) {
-    out[0] = 0;
-    out[1] = 0;
-    out[2] = 0;
-  }
-
-  out[3] = 1;
-  return out;
-}
-/**
- * Sets a quat from the given angle and rotation axis,
- * then returns it.
- *
- * @param {quat} out the receiving quaternion
- * @param {vec3} axis the axis around which to rotate
- * @param {Number} rad the angle in radians
- * @returns {quat} out
- **/
-
-function setAxisAngle(out, axis, rad) {
-  rad = rad * 0.5;
-  var s = Math.sin(rad);
-  out[0] = s * axis[0];
-  out[1] = s * axis[1];
-  out[2] = s * axis[2];
-  out[3] = Math.cos(rad);
-  return out;
-}
-/**
- * Performs a spherical linear interpolation between two quat
- *
- * @param {quat} out the receiving quaternion
- * @param {quat} a the first operand
- * @param {quat} b the second operand
- * @param {Number} t interpolation amount, in the range [0-1], between the two inputs
- * @returns {quat} out
- */
-
-function slerp(out, a, b, t) {
-  // benchmarks:
-  //    http://jsperf.com/quaternion-slerp-implementations
-  var ax = a[0],
-      ay = a[1],
-      az = a[2],
-      aw = a[3];
-  var bx = b[0],
-      by = b[1],
-      bz = b[2],
-      bw = b[3];
-  var omega, cosom, sinom, scale0, scale1; // calc cosine
-
-  cosom = ax * bx + ay * by + az * bz + aw * bw; // adjust signs (if necessary)
-
-  if (cosom < 0.0) {
-    cosom = -cosom;
-    bx = -bx;
-    by = -by;
-    bz = -bz;
-    bw = -bw;
-  } // calculate coefficients
-
-
-  if (1.0 - cosom > EPSILON) {
-    // standard case (slerp)
-    omega = Math.acos(cosom);
-    sinom = Math.sin(omega);
-    scale0 = Math.sin((1.0 - t) * omega) / sinom;
-    scale1 = Math.sin(t * omega) / sinom;
-  } else {
-    // "from" and "to" quaternions are very close
-    //  ... so we can do a linear interpolation
-    scale0 = 1.0 - t;
-    scale1 = t;
-  } // calculate final values
-
-
-  out[0] = scale0 * ax + scale1 * bx;
-  out[1] = scale0 * ay + scale1 * by;
-  out[2] = scale0 * az + scale1 * bz;
-  out[3] = scale0 * aw + scale1 * bw;
-  return out;
-}
-/**
- * Creates a quaternion from the given 3x3 rotation matrix.
- *
- * NOTE: The resultant quaternion is not normalized, so you should be sure
- * to renormalize the quaternion yourself where necessary.
- *
- * @param {quat} out the receiving quaternion
- * @param {mat3} m rotation matrix
- * @returns {quat} out
- * @function
- */
-
-function fromMat3(out, m) {
-  // Algorithm in Ken Shoemake's article in 1987 SIGGRAPH course notes
-  // article "Quaternion Calculus and Fast Animation".
-  var fTrace = m[0] + m[4] + m[8];
-  var fRoot;
-
-  if (fTrace > 0.0) {
-    // |w| > 1/2, may as well choose w > 1/2
-    fRoot = Math.sqrt(fTrace + 1.0); // 2w
-
-    out[3] = 0.5 * fRoot;
-    fRoot = 0.5 / fRoot; // 1/(4w)
-
-    out[0] = (m[5] - m[7]) * fRoot;
-    out[1] = (m[6] - m[2]) * fRoot;
-    out[2] = (m[1] - m[3]) * fRoot;
-  } else {
-    // |w| <= 1/2
-    var i = 0;
-    if (m[4] > m[0]) i = 1;
-    if (m[8] > m[i * 3 + i]) i = 2;
-    var j = (i + 1) % 3;
-    var k = (i + 2) % 3;
-    fRoot = Math.sqrt(m[i * 3 + i] - m[j * 3 + j] - m[k * 3 + k] + 1.0);
-    out[i] = 0.5 * fRoot;
-    fRoot = 0.5 / fRoot;
-    out[3] = (m[j * 3 + k] - m[k * 3 + j]) * fRoot;
-    out[j] = (m[j * 3 + i] + m[i * 3 + j]) * fRoot;
-    out[k] = (m[k * 3 + i] + m[i * 3 + k]) * fRoot;
-  }
-
-  return out;
-}
-/**
- * Normalize a quat
- *
- * @param {quat} out the receiving quaternion
- * @param {quat} a quaternion to normalize
- * @returns {quat} out
- * @function
- */
-
-var normalize$2 = normalize$1;
-/**
- * Sets a quaternion to represent the shortest rotation from one
- * vector to another.
- *
- * Both vectors are assumed to be unit length.
- *
- * @param {quat} out the receiving quaternion.
- * @param {vec3} a the initial vector
- * @param {vec3} b the destination vector
- * @returns {quat} out
- */
-
-var rotationTo = function () {
-  var tmpvec3 = create$4();
-  var xUnitVec3 = fromValues$4(1, 0, 0);
-  var yUnitVec3 = fromValues$4(0, 1, 0);
-  return function (out, a, b) {
-    var dot$$1 = dot(a, b);
-
-    if (dot$$1 < -0.999999) {
-      cross(tmpvec3, xUnitVec3, a);
-      if (len(tmpvec3) < 0.000001) cross(tmpvec3, yUnitVec3, a);
-      normalize(tmpvec3, tmpvec3);
-      setAxisAngle(out, tmpvec3, Math.PI);
-      return out;
-    } else if (dot$$1 > 0.999999) {
-      out[0] = 0;
-      out[1] = 0;
-      out[2] = 0;
-      out[3] = 1;
-      return out;
-    } else {
-      cross(tmpvec3, a, b);
-      out[0] = tmpvec3[0];
-      out[1] = tmpvec3[1];
-      out[2] = tmpvec3[2];
-      out[3] = 1 + dot$$1;
-      return normalize$2(out, out);
-    }
-  };
-}();
-/**
- * Performs a spherical linear interpolation with two control points
- *
- * @param {quat} out the receiving quaternion
- * @param {quat} a the first operand
- * @param {quat} b the second operand
- * @param {quat} c the third operand
- * @param {quat} d the fourth operand
- * @param {Number} t interpolation amount, in the range [0-1], between the two inputs
- * @returns {quat} out
- */
-
-var sqlerp = function () {
-  var temp1 = create$6();
-  var temp2 = create$6();
-  return function (out, a, b, c, d, t) {
-    slerp(temp1, a, d, t);
-    slerp(temp2, b, c, t);
-    slerp(out, temp1, temp2, 2 * t * (1 - t));
-    return out;
-  };
-}();
-/**
- * Sets the specified quaternion with values corresponding to the given
- * axes. Each axis is a vec3 and is expected to be unit length and
- * perpendicular to all other specified axes.
- *
- * @param {vec3} view  the vector representing the viewing direction
- * @param {vec3} right the vector representing the local "right" direction
- * @param {vec3} up    the vector representing the local "up" direction
- * @returns {quat} out
- */
-
-var setAxes = function () {
-  var matr = create$2();
-  return function (out, view, right, up) {
-    matr[0] = right[0];
-    matr[3] = right[1];
-    matr[6] = right[2];
-    matr[1] = up[0];
-    matr[4] = up[1];
-    matr[7] = up[2];
-    matr[2] = -view[0];
-    matr[5] = -view[1];
-    matr[8] = -view[2];
-    return normalize$2(out, fromMat3(out, matr));
-  };
-}();
-
-/**
- * 2 Dimensional Vector
- * @module vec2
- */
-
-/**
- * Creates a new, empty vec2
- *
- * @returns {vec2} a new 2D vector
- */
-
-function create$8() {
-  var out = new ARRAY_TYPE(2);
-
-  if (ARRAY_TYPE != Float32Array) {
-    out[0] = 0;
-    out[1] = 0;
-  }
-
-  return out;
-}
-/**
- * Perform some operation over an array of vec2s.
- *
- * @param {Array} a the array of vectors to iterate over
- * @param {Number} stride Number of elements between the start of each vec2. If 0 assumes tightly packed
- * @param {Number} offset Number of elements to skip at the beginning of the array
- * @param {Number} count Number of vec2s to iterate over. If 0 iterates over entire array
- * @param {Function} fn Function to call for each vector in the array
- * @param {Object} [arg] additional argument to pass to fn
- * @returns {Array} a
- * @function
- */
-
-var forEach$2 = function () {
-  var vec = create$8();
-  return function (a, stride, offset, count, fn, arg) {
-    var i, l;
-
-    if (!stride) {
-      stride = 2;
-    }
-
-    if (!offset) {
-      offset = 0;
-    }
-
-    if (count) {
-      l = Math.min(count * stride + offset, a.length);
-    } else {
-      l = a.length;
-    }
-
-    for (i = offset; i < l; i += stride) {
-      vec[0] = a[i];
-      vec[1] = a[i + 1];
-      fn(vec, vec, arg);
-      a[i] = vec[0];
-      a[i + 1] = vec[1];
     }
 
     return a;
@@ -1052,14 +622,15 @@ function createProgram(gl, vertexShaderSrc, fragmentShaderSrc) {
  *
  * @returns uniformLocation
  */
-function createBufferWithLocation(gl, program, data, str$$1) {
+function createBufferWithLocation(gl, program, data, str) {
     var buffer = gl.createBuffer();
-    var location = gl.getAttribLocation(program, str$$1);
+    var location = gl.getAttribLocation(program, str);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
     return { buffer: buffer, location: location };
 }
 /**
+ * creates and initializes WebGLBuffer with data
  *
  * @param gl
  * @param data
@@ -1069,6 +640,21 @@ function createBuffer(gl, data) {
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
     return buffer;
+}
+/**
+ * update array buffer
+ *
+ * @param gl
+ * @param buffer
+ * @param data
+ * @param isBind
+ */
+function updateArrayBuffer(gl, buffer, data, isBind) {
+    if (isBind === void 0) { isBind = true; }
+    if (isBind) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    }
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
 }
 /**
  *
@@ -1094,14 +680,17 @@ function createIndex(gl, indices) {
  * @param {Number} stride
  * @param {Number} offset
  */
-function bindBuffer(gl, buffer, location, size, type, normalized, stride, offset) {
+function bindBuffer(gl, buffer, location, size, type, normalized, stride, offset, isBind) {
     if (location === void 0) { location = 0; }
     if (size === void 0) { size = 1; }
     if (type === void 0) { type = FLOAT; }
     if (normalized === void 0) { normalized = false; }
     if (stride === void 0) { stride = 0; }
     if (offset === void 0) { offset = 0; }
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    if (isBind === void 0) { isBind = true; }
+    if (isBind) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    }
     gl.vertexAttribPointer(location, size, type, normalized, stride, offset);
     gl.enableVertexAttribArray(location);
 }
@@ -1112,23 +701,22 @@ function generateFaceFromIndex(vertices, indices) {
         var index1 = indices[ii + 1];
         var index2 = indices[ii + 2];
         faces.push([
-            fromValues$4(vertices[3 * index0], vertices[3 * index0 + 1], vertices[3 * index0 + 2]),
-            fromValues$4(vertices[3 * index1], vertices[3 * index1 + 1], vertices[3 * index1 + 2]),
-            fromValues$4(vertices[3 * index2], vertices[3 * index2 + 1], vertices[3 * index2 + 2])
+            fromValues(vertices[3 * index0], vertices[3 * index0 + 1], vertices[3 * index0 + 2]),
+            fromValues(vertices[3 * index1], vertices[3 * index1 + 1], vertices[3 * index1 + 2]),
+            fromValues(vertices[3 * index2], vertices[3 * index2 + 1], vertices[3 * index2 + 2])
         ]);
     }
     return faces;
 }
 function castMouse(mouse, viewMatrixInverse, projectionMatrixInverse, depth) {
     if (depth === void 0) { depth = 0; }
-    var clipSpace = fromValues$4(mouse[0], mouse[1], depth);
-    var cameraSpace = create$4();
-    var worldSpace = create$4();
+    var clipSpace = fromValues(mouse[0], mouse[1], depth);
+    var cameraSpace = create$2();
+    var worldSpace = create$2();
     transformMat4(cameraSpace, clipSpace, projectionMatrixInverse);
     transformMat4(worldSpace, cameraSpace, viewMatrixInverse);
     return worldSpace;
 }
-//# sourceMappingURL=gl-functions.js.map
 
 /**
  *
@@ -1225,7 +813,6 @@ function activeTexture(gl, texture, uniformLocation, textureNum) {
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.uniform1i(uniformLocation, textureNum);
 }
-//# sourceMappingURL=gl-textures.js.map
 
 /**
  * load json with ajax
@@ -1285,7 +872,6 @@ function loadDraco(dracoUrl, callback) {
     xhr.open('GET', dracoUrl, true);
     xhr.send(null);
 }
-//# sourceMappingURL=assets-functions.js.map
 
 function getSphere(radius, latitudeBands, longitudeBands) {
     if (radius === void 0) { radius = 2; }
@@ -1399,7 +985,6 @@ function mergeGeomtory(geometries) {
         indices: indices
     };
 }
-//# sourceMappingURL=generateGeometry.js.map
 
 // segment is one
 function createSimpleBox() {
@@ -1546,7 +1131,6 @@ function createSimplePlane() {
         indices: indices
     };
 }
-//# sourceMappingURL=generateSimpleGeometry.js.map
 
 function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
@@ -1580,18 +1164,18 @@ function radToDeg(value) {
     // 180 / Math.PI = 57.29577951308232
     return 57.29577951308232 * value;
 }
-//# sourceMappingURL=math.js.map
 
 var Ray = /** @class */ (function () {
     function Ray() {
         this.isPrev = false;
-        this.orig = create$4();
-        this.dir = create$4();
+        this.orig = create$2();
+        this.dir = create$2();
+        this.worldMatrix3Inv = create();
     }
     Ray.prototype.intersect = function (box) {
-        var min$$1 = box.min, max$$1 = box.max;
-        var tmin = (min$$1.x - this.orig[0]) / this.dir[0];
-        var tmax = (max$$1.x - this.orig[0]) / this.dir[0];
+        var min = box.min, max = box.max;
+        var tmin = (min.x - this.orig[0]) / this.dir[0];
+        var tmax = (max.x - this.orig[0]) / this.dir[0];
         var minY = tmin * this.dir[1] + this.orig[1];
         var maxY = tmax * this.dir[1] + this.orig[1];
         if (minY > maxY) {
@@ -1599,7 +1183,7 @@ var Ray = /** @class */ (function () {
             minY = minVal;
             maxY = maxVal;
         }
-        if (minY > max$$1.y || maxY < min$$1.y) {
+        if (minY > max.y || maxY < min.y) {
             return false;
         }
         var minZ = tmin * this.dir[2] + this.orig[2];
@@ -1609,18 +1193,17 @@ var Ray = /** @class */ (function () {
             minZ = minVal;
             maxZ = maxVal;
         }
-        if (minZ > max$$1.z || maxZ < min$$1.z) {
+        if (minZ > max.z || maxZ < min.z) {
             return false;
         }
         this.isPrev = true;
         return { tmin: tmin, tmax: tmax };
     };
     Ray.prototype.rayCast = function (faces, worldMatrixInv) {
-        var transDir = create$4();
-        var transOrig = create$4();
-        var worldMatrix3Inv = create$2();
-        fromMat4(worldMatrix3Inv, worldMatrixInv);
-        transformMat3(transDir, this.dir, worldMatrix3Inv);
+        var transDir = create$2();
+        var transOrig = create$2();
+        fromMat4(this.worldMatrix3Inv, worldMatrixInv);
+        transformMat3(transDir, this.dir, this.worldMatrix3Inv);
         normalize(transDir, transDir);
         transformMat4(transOrig, this.orig, worldMatrixInv);
         return this.intersectFaces(faces, transDir, transOrig);
@@ -1640,11 +1223,11 @@ var Ray = /** @class */ (function () {
     // https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution
     // https://stackoverflow.com/questions/42740765/intersection-between-line-and-triangle-in-3d
     Ray.prototype.intersectPts = function (pt0, pt1, pt2, dir, orig) {
-        var dir0Vec = create$4();
-        var dir1Vec = create$4();
-        var nVec = create$4();
-        subtract$4(dir0Vec, pt1, pt0);
-        subtract$4(dir1Vec, pt2, pt0);
+        var dir0Vec = create$2();
+        var dir1Vec = create$2();
+        var nVec = create$2();
+        subtract(dir0Vec, pt1, pt0);
+        subtract(dir1Vec, pt2, pt0);
         cross(nVec, dir0Vec, dir1Vec);
         var D = -this.dot(nVec, pt0);
         if (Math.abs(this.dot(dir, nVec)) < Number.EPSILON)
@@ -1657,7 +1240,7 @@ var Ray = /** @class */ (function () {
             intersectPt[1] - pt0[1],
             intersectPt[2] - pt0[2]
         ];
-        var dotProduct0Vec = create$4();
+        var dotProduct0Vec = create$2();
         cross(dotProduct0Vec, dir0, intersectPt0);
         var judge0 = this.dot(dotProduct0Vec, nVec);
         if (judge0 < 0)
@@ -1668,7 +1251,7 @@ var Ray = /** @class */ (function () {
             intersectPt[1] - pt1[1],
             intersectPt[2] - pt1[2]
         ];
-        var dotProduct1Vec = create$4();
+        var dotProduct1Vec = create$2();
         cross(dotProduct1Vec, dir1, intersectPt1);
         var judge1 = this.dot(dotProduct1Vec, nVec);
         if (judge1 < 0)
@@ -1679,7 +1262,7 @@ var Ray = /** @class */ (function () {
             intersectPt[1] - pt2[1],
             intersectPt[2] - pt2[2]
         ];
-        var dotProduct2Vec = create$4();
+        var dotProduct2Vec = create$2();
         cross(dotProduct2Vec, dir2, intersectPt2);
         var judge2 = this.dot(dotProduct2Vec, nVec);
         if (judge2 < 0)
@@ -1687,8 +1270,8 @@ var Ray = /** @class */ (function () {
         return { t: t, pt: intersectPt };
     };
     Ray.prototype.calcDirection = function (startPt, endPt) {
-        var dir = create$4();
-        subtract$4(dir, endPt, startPt);
+        var dir = create$2();
+        subtract(dir, endPt, startPt);
         normalize(dir, dir);
         this.dir = dir;
         this.orig = startPt;
@@ -1739,10 +1322,10 @@ var Camera = /** @class */ (function () {
         if (type === void 0) { type = 'camera'; }
         this.position = { x: 0, y: 0, z: 0 };
         this.lookAtPosition = { x: 0, y: 0, z: 0 };
-        this.viewMatrix = create$3();
-        this.viewMatrixInverse = create$3();
-        this.projectionMatrix = create$3();
-        this.projectionMatrixInverse = create$3();
+        this.viewMatrix = create$1();
+        this.viewMatrixInverse = create$1();
+        this.projectionMatrix = create$1();
+        this.projectionMatrixInverse = create$1();
         this.type = type;
     }
     Camera.prototype.updatePosition = function (xx, yy, zz) {
@@ -1763,7 +1346,7 @@ var Camera = /** @class */ (function () {
     };
     Camera.prototype.updateViewMatrix = function () {
         lookAt(this.viewMatrix, [this.position.x, this.position.y, this.position.z], [this.lookAtPosition.x, this.lookAtPosition.y, this.lookAtPosition.z], [0, 1, 0]);
-        invert$3(this.viewMatrixInverse, this.viewMatrix);
+        invert(this.viewMatrixInverse, this.viewMatrix);
     };
     return Camera;
 }());
@@ -1785,7 +1368,7 @@ var PerspectiveCamera = /** @class */ (function (_super) {
     }
     PerspectiveCamera.prototype.updatePerspective = function () {
         perspective(this.projectionMatrix, (this.fov / 180) * Math.PI, this.width / this.height, this.near, this.far);
-        invert$3(this.projectionMatrixInverse, this.projectionMatrix);
+        invert(this.projectionMatrixInverse, this.projectionMatrix);
     };
     PerspectiveCamera.prototype.updateSize = function (width, height) {
         this.width = width;
@@ -1799,8 +1382,8 @@ var PerspectiveCamera = /** @class */ (function (_super) {
             this.far = far;
         this.updatePerspective();
     };
-    PerspectiveCamera.prototype.updatefov = function (angle$$1) {
-        this.fov = angle$$1;
+    PerspectiveCamera.prototype.updatefov = function (angle) {
+        this.fov = angle;
         this.updatePerspective();
     };
     return PerspectiveCamera;
@@ -1835,11 +1418,10 @@ var OrthoCamera = /** @class */ (function (_super) {
     };
     OrthoCamera.prototype.updatePerspective = function () {
         ortho(this.projectionMatrix, this.left, this.right, this.bottom, this.top, this.near, this.far);
-        invert$3(this.projectionMatrixInverse, this.projectionMatrix);
+        invert(this.projectionMatrixInverse, this.projectionMatrix);
     };
     return OrthoCamera;
 }(Camera));
-//# sourceMappingURL=camera.js.map
 
 var DampedAction = /** @class */ (function () {
     function DampedAction() {
@@ -1869,7 +1451,7 @@ var DampedAction = /** @class */ (function () {
 var CameraController = /** @class */ (function () {
     function CameraController(camera, domElement) {
         if (domElement === void 0) { domElement = document.body; }
-        this.target = create$4();
+        this.target = create$2();
         this.minDistance = 0;
         this.maxDistance = Infinity;
         this.isEnabled = true;
@@ -1929,8 +1511,8 @@ var CameraController = /** @class */ (function () {
             SHIFT: '16'
         };
         // for reset
-        this.originTarget = create$4();
-        this.originPosition = create$4();
+        this.originTarget = create$2();
+        this.originPosition = create$2();
         this.originPosition[0] = camera.position.x;
         this.originPosition[1] = camera.position.x;
         this.originPosition[2] = camera.position.x;
@@ -2217,19 +1799,19 @@ var CameraController = /** @class */ (function () {
         }
     };
     CameraController.prototype._updatePanHandler = function () {
-        var xDir = create$4();
-        var yDir = create$4();
-        var zDir = create$4();
+        var xDir = create$2();
+        var yDir = create$2();
+        var zDir = create$2();
         zDir[0] = this.target[0] - this.camera.position.x;
         zDir[1] = this.target[1] - this.camera.position.y;
         zDir[2] = this.target[2] - this.camera.position.z;
         normalize(zDir, zDir);
         cross(xDir, zDir, [0, 1, 0]);
         cross(yDir, xDir, zDir);
-        var scale$$1 = Math.max(this._spherical.radius / 2000, 0.001);
-        this.targetXDampedAction.addForce((xDir[0] * this._panDelta.x + yDir[0] * this._panDelta.y) * scale$$1);
-        this.targetYDampedAction.addForce((xDir[1] * this._panDelta.x + yDir[1] * this._panDelta.y) * scale$$1);
-        this.targetZDampedAction.addForce((xDir[2] * this._panDelta.x + yDir[2] * this._panDelta.y) * scale$$1);
+        var scale = Math.max(this._spherical.radius / 2000, 0.001);
+        this.targetXDampedAction.addForce((xDir[0] * this._panDelta.x + yDir[0] * this._panDelta.y) * scale);
+        this.targetYDampedAction.addForce((xDir[1] * this._panDelta.x + yDir[1] * this._panDelta.y) * scale);
+        this.targetZDampedAction.addForce((xDir[2] * this._panDelta.x + yDir[2] * this._panDelta.y) * scale);
     };
     CameraController.prototype._updateRotateHandler = function () {
         this.targetThetaDampedAction.addForce(-this._roatteDelta.x / this.domElement.clientWidth);
@@ -2237,7 +1819,6 @@ var CameraController = /** @class */ (function () {
     };
     return CameraController;
 }());
-//# sourceMappingURL=cameracontroller.js.map
 
 // convert layout-bmfont-text into layout
 // https://github.com/Jam3/layout-bmfont-text
@@ -2408,7 +1989,6 @@ var TextLines = /** @class */ (function () {
         if (width === void 0) { width = Number.MAX_VALUE; }
         if (start === void 0) { start = 0; }
         if (mode === void 0) { mode = 'nowrap'; }
-        if (letterSpacing === void 0) { letterSpacing = 0; }
         // if(mode === )
         var end = text.length;
         this.fontData = fontData;
@@ -2566,7 +2146,6 @@ function getCapHeight(font) {
     }
     return 0;
 }
-//# sourceMappingURL=textLayout.js.map
 
 var TextRendering = /** @class */ (function () {
     function TextRendering(gl, textLayout, bitmapImage) {
@@ -2597,9 +2176,53 @@ var TextRendering = /** @class */ (function () {
     }
     return TextRendering;
 }());
-//# sourceMappingURL=textRendering.js.map
 
-//# sourceMappingURL=dan-shari-gl.js.map
+var TexturePools = /** @class */ (function () {
+    function TexturePools() {
+        this.textures = {};
+    }
+    TexturePools.GET_INSTANCE = function () {
+        if (!TexturePools.instance) {
+            TexturePools.instance = new TexturePools();
+            // ... any one time initialization goes here ...
+        }
+        return TexturePools.instance;
+    };
+    TexturePools.GET_TEXTURE = function (name) {
+        return TexturePools.instance.textures[name];
+    };
+    TexturePools.prototype.setGL = function (gl) {
+        this.gl = gl;
+        this.setImage('empty', this.createEmptyCanvas());
+    };
+    TexturePools.prototype.setImage = function (name, element) {
+        var texture = createImageTexture(this.gl, element);
+        this.textures[name] = texture;
+    };
+    TexturePools.prototype.createEmptyCanvas = function () {
+        var canvas = document.createElement('canvas');
+        canvas.width = EMPTY_CANVAS_SIZE;
+        canvas.height = EMPTY_CANVAS_SIZE;
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, EMPTY_CANVAS_SIZE, EMPTY_CANVAS_SIZE);
+        ctx.fillStyle = EMPTY_CANVAS_COLOR;
+        var cnt = 0;
+        var unitWidthSize = EMPTY_CANVAS_SIZE / COLOR_REPEAT;
+        for (var xx = 0; xx < COLOR_REPEAT; xx = xx + 1) {
+            for (var yy = 0; yy < COLOR_REPEAT; yy = yy + 1) {
+                if (cnt % 2 === 0) {
+                    var xpos = xx * unitWidthSize;
+                    var ypos = yy * unitWidthSize;
+                    ctx.fillRect(xpos, ypos, unitWidthSize, unitWidthSize);
+                }
+                cnt = cnt + 1;
+            }
+        }
+        return canvas;
+    };
+    return TexturePools;
+}());
 
-export { getUniformLocations, addLineNumbers, compileGLShader, createProgram, createBufferWithLocation, createBuffer, createIndex, bindBuffer, generateFaceFromIndex, castMouse, createEmptyTexture, createImageTexture, updateImageTexture, activeTexture, getAjaxJson, getImage, loadDraco, getSphere, getPlane, mergeGeomtory, createSimpleBox, createSimplePlane, FLOAT, RGB, NEAREST, LINEAR, NEAREST_MIPMAP_NEAREST, LINEAR_MIPMAP_NEAREST, NEAREST_MIPMAP_LINEAR, LINEAR_MIPMAP_LINEAR, CLAMP_TO_EDGE, REPEAT, DEPTH_COMPONENT16, UNSIGNED_BYTE, clamp, range, calculateCircleCenter, mix, degToRad, radToDeg, Ray, Camera, PerspectiveCamera, OrthoCamera, CameraController, TextLayout, TextLines, TextRendering };
+export { CLAMP_TO_EDGE, COLOR_REPEAT, Camera, CameraController, DEPTH_COMPONENT16, EMPTY_CANVAS_COLOR, EMPTY_CANVAS_SIZE, FLOAT, LINEAR, LINEAR_MIPMAP_LINEAR, LINEAR_MIPMAP_NEAREST, NEAREST, NEAREST_MIPMAP_LINEAR, NEAREST_MIPMAP_NEAREST, OrthoCamera, PerspectiveCamera, REPEAT, RGB, Ray, TextLayout, TextLines, TextRendering, TexturePools, UNSIGNED_BYTE, activeTexture, addLineNumbers, bindBuffer, calculateCircleCenter, castMouse, clamp, compileGLShader, createBuffer, createBufferWithLocation, createEmptyTexture, createImageTexture, createIndex, createProgram, createSimpleBox, createSimplePlane, degToRad, generateFaceFromIndex, getAjaxJson, getImage, getPlane, getSphere, getUniformLocations, loadDraco, mergeGeomtory, mix, radToDeg, range, updateArrayBuffer, updateImageTexture };
 //# sourceMappingURL=dan-shari-gl.es5.js.map
