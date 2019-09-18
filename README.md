@@ -11,11 +11,11 @@
 
 ### API Documents
 
-[dan-shari-gl/documents/](https://kenjispecial.github.io/dan-shari-gl/documents/)
+[dan-shari-gl/documents/](https://kenjispecial.github.io/dan-shari-gl/site/documents/)
 
 ### Examples
 
-[dan-shari-gl/examples](https://kenjispecial.github.io/dan-shari-gl/examples)
+[dan-shari-gl/examples](https://kenjispecial.github.io/dan-shari-gl/site/examples)
 
 ### Tools
 
