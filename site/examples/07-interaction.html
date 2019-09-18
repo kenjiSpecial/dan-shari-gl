@@ -1,0 +1,277 @@
+<html>
+	<title>DEV</title>
+	<meta charset="UTF-8" />
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" />
+	<style>
+		* {
+			margin: 0;
+		}
+
+		html,
+		body {
+			font-family: 'Roboto', sans-serif;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+		}
+
+		canvas {
+			background: #000000;
+			display: block;
+		}
+
+		.dsr-desc {
+			position: absolute;
+			bottom: 20px;
+			left: 20px;
+			color: #cccccc;
+			font-size: 14px;
+			line-height: 1.75em;
+			z-index: 10;
+		}
+
+		.dsr-desc a {
+			color: #ffffff;
+		}
+	</style>
+	<meta 
+		name="viewport"
+		content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+	/>
+
+	<body>
+		<div class="dsr-desc"><p class="dsr-p">#07 - interaction</p></div>
+
+		<script src="./vendors/dat.gui.min.js"></script>
+		<script src="./vendors/stats.min.js"></script>
+		<script src="./vendors/TweenMax.js"></script>
+		<script src="./vendors/gl-matrix.js"></script>
+
+		<script src="./lib/dan-shari-gl.umd.js"></script>
+
+		<script>
+			const vertexShaderSrc = `
+			        precision highp float;
+			        attribute vec4 position;
+			        attribute vec3 normal;
+			
+			        uniform mat4 uMVPMatrix;
+			
+			        varying vec3 vNormal;
+			
+			        void main() {
+			            gl_Position = uMVPMatrix * position;
+			            vNormal = normalize(normal + vec3(1.));
+			        }`;
+
+			const fragmentShaderSrc = `
+			        precision highp float;
+
+					uniform bool uIsOverlay;
+					
+					varying vec3 vNormal;
+					
+			        void main(){
+						vec3 color;
+
+						if(uIsOverlay){
+							color = vec3(1.0) - vNormal;
+						}else{
+							color = vNormal;
+						}
+
+			            gl_FragColor = vec4(color, 1.0);
+			        }
+			        `;
+
+			var canvas = document.createElement('canvas');
+			var gl = canvas.getContext('webgl');
+			document.body.appendChild(canvas);
+
+			var viewportWidth, viewportHeight;
+			var sphere = {};
+			var mouse = vec2.create();
+			mouse[0] = 99;
+			mouse[1] = 99;
+
+			resize();
+			{
+				window.addEventListener('resize', resize);
+				window.addEventListener('mousemove', onMousemoveHandler);
+			}
+
+			var camera = new dsr.PerspectiveCamera(
+				window.innerWidth,
+				window.innerHeight,
+				45,
+				0.1,
+				1000
+			);
+			camera.updatePosition(0, 0, 20);
+			camera.updateLookAtPosition(0, 0, 0);
+			camera.updateViewMatrix();
+
+			var cameraController = new dsr.CameraController(camera);
+			var ray = new dsr.Ray();
+			
+
+			// create box
+			{
+				var { vertices, normals, indices } = dsr.createSimpleBox();
+				sphere.progoram = dsr.createProgram(gl, vertexShaderSrc, fragmentShaderSrc);
+				sphere.vertices = new Float32Array(vertices);
+				sphere.normals = new Float32Array(normals);
+				sphere.buffers = {
+					position: dsr.createBufferWithLocation(
+						gl,
+						sphere.progoram,
+						sphere.vertices,
+						'position'
+					),
+					normal: dsr.createBufferWithLocation(
+						gl,
+						sphere.progoram,
+						sphere.normals,
+						'normal'
+					),
+					index: dsr.createIndex(gl, new Uint16Array(indices))
+				};
+
+				var modelMatArr = [];
+				for(let ii = 0; ii < 20; ii = ii + 1){
+					var modelMat = mat4.create();
+
+					var pos = ii == 0 ? vec3.create() : vec3.fromValues(dsr.range(-5, 5), dsr.range(-5, 5), dsr.range(-5, 5));
+					var scale = dsr.range(0.3, 0.8);
+					var rot = quat.create();
+					if(ii !== 0){
+						quat.rotateX(rot, rot, dsr.range(-1, 1))
+						quat.rotateY(rot, rot, dsr.range(-1, 1))
+						quat.rotateZ(rot, rot, dsr.range(-1, 1))
+					}
+
+					mat4.fromRotationTranslationScale(modelMat, rot, pos, [scale, scale, scale]);
+					modelMatArr.push(modelMat)
+				}
+				
+				sphere.matrix = {
+					modelMatrixArr: modelMatArr,
+					mvMatrix: mat4.create(),
+					mvpMatrix: mat4.create(),
+					invMatrix: mat4.create()
+				};
+				sphere.faces = dsr.generateFaceFromIndex(vertices, indices);
+				sphere.uniforms = dsr.getUniformLocations(gl, sphere.progoram, ['uMVPMatrix', 'uIsOverlay']);
+			}
+
+
+			/**
+			 * set debug tool(dat.gui)
+			 **/
+			let loopId;
+			let player = {
+				playAndStop: function() {
+					isPlay = !isPlay;
+					if (isPlay) {
+						playAndStopGui.name('pause');
+						loopId = requestAnimationFrame(tick);
+					} else {
+						playAndStopGui.name('play');
+						cancelAnimationFrame(loopId);
+					}
+				}
+			};
+			let isPlay = true;
+			let gui = new window.dat.GUI();
+			let playAndStopGui = gui.add(player, 'playAndStop').name('pause');
+
+			let stats = new Stats();
+			document.body.appendChild(stats.dom);
+
+			tick();
+
+			function resize() {
+				viewportWidth = window.innerWidth;
+				viewportHeight = window.innerHeight;
+				canvas.width = viewportWidth;
+				canvas.height = viewportHeight;
+
+				if (camera) camera.updateSize(viewportWidth, viewportHeight);
+			}
+
+			function tick() {
+				stats.update();
+
+				
+				
+				var mouseCameraSpacePos = dsr.castMouse(mouse, camera.viewMatrixInverse, camera.projectionMatrixInverse);
+
+				gl.clearColor(1, 1, 1, 1);
+				gl.enable(gl.DEPTH_TEST);
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+				gl.viewport(0, 0, viewportWidth, viewportHeight);
+
+				gl.useProgram(sphere.progoram);
+
+				dsr.bindBuffer(
+					gl,
+					sphere.buffers.position.buffer,
+					sphere.buffers.position.location,
+					3
+				);
+				dsr.bindBuffer(gl, sphere.buffers.normal.buffer, sphere.buffers.normal.location, 3);
+
+				gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphere.buffers.index.buffer);
+
+				
+				// return;
+				for(var ii = 0; ii < sphere.matrix.modelMatrixArr.length; ii = ii + 1){
+					var modelMatrix = sphere.matrix.modelMatrixArr[ii];
+
+					mat4.invert(sphere.matrix.invMatrix, modelMatrix);
+					
+					ray.calcDirection([camera.position.x, camera.position.y, camera.position.z], mouseCameraSpacePos);
+					
+					var isOverlay = ray.rayCast(sphere.faces, sphere.matrix.invMatrix) ? true : false;
+
+					mat4.multiply(
+						sphere.matrix.mvMatrix,
+						camera.viewMatrix,
+						modelMatrix
+					);
+
+					mat4.multiply(
+						sphere.matrix.mvpMatrix,
+						camera.projectionMatrix,
+						sphere.matrix.mvMatrix
+					);
+
+					// console.log(sphere.matrix.mvpMatrix);
+					gl.uniformMatrix4fv(sphere.uniforms.uMVPMatrix, false, sphere.matrix.mvpMatrix);
+					gl.uniform1f(sphere.uniforms.uIsOverlay, isOverlay);
+
+					gl.drawElements(gl.TRIANGLES, sphere.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
+				}
+
+				loopId = requestAnimationFrame(tick);
+			}
+
+			function onMousemoveHandler(event){
+				mouse[0] = event.clientX / window.innerWidth * 2 - 1;
+				mouse[1] = -event.clientY / window.innerHeight * 2 + 1;
+			}
+		</script>
+		<!-- Global site tag (gtag.js) - Google Analytics -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-42485016-2"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag() {
+				dataLayer.push(arguments);
+			}
+			gtag('js', new Date());
+
+			gtag('config', 'UA-42485016-2');
+		</script>
+	</body>
+</html>

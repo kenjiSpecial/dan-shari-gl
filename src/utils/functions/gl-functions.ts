@@ -256,3 +256,27 @@ export function castMouse(
 
 	return worldSpace;
 }
+
+export function createFrameBufferWithTexture(gl: WebGLRenderingContext, texture: WebGLTexture) {
+	const framebuffer = gl.createFramebuffer();
+	gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+	gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+	return framebuffer;
+}
+
+export function createAndBindDepthBuffer(gl: WebGLRenderingContext, width: number, height: number) {
+	const depth = gl.createRenderbuffer();
+	gl.bindRenderbuffer(gl.RENDERBUFFER, depth);
+	gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+
+	return depth;
+}
+
+export function addKeyword(sources: string, keywords: string | null) {
+	if (keywords === null) {
+		return sources;
+	}
+
+	return keywords + sources;
+}

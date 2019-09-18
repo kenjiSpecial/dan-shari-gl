@@ -49,12 +49,30 @@ export function createImageTexture(
 	isFlip: boolean = false,
 	isMipmap: boolean = false
 ) {
+	return createCustomTypeImageTexture(
+		gl,
+		canvasImage,
+		format,
+		gl.UNSIGNED_BYTE,
+		isFlip,
+		isMipmap
+	);
+}
+
+export function createCustomTypeImageTexture(
+	gl: WebGLRenderingContext,
+	canvasImage: HTMLImageElement | HTMLCanvasElement,
+	format: number = RGB,
+	type: number,
+	isFlip: boolean = false,
+	isMipmap: boolean = false
+) {
 	const texture = gl.createTexture();
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 
 	gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, isFlip ? 0 : 1);
-	gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, canvasImage);
+	gl.texImage2D(gl.TEXTURE_2D, 0, format, format, type, canvasImage);
 
 	if (isPowerOf2(canvasImage.width) && isPowerOf2(canvasImage.height) && isMipmap) {
 		// Yes, it's a power of 2. Generate mips.

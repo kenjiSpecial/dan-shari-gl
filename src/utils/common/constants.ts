@@ -25,3 +25,9 @@ export const UNSIGNED_BYTE: number = 0x1401;
 export const EMPTY_CANVAS_SIZE = 16;
 export const EMPTY_CANVAS_COLOR = '#ff0000';
 export const COLOR_REPEAT = 4;
+
+export const UNIFORM_1F = '1f';
+export const UNIFORM_1I = '1i';
+export const UNIFORM_2F = '2f';
+export const UNIFORM_3F = '3f';
+export const UNIFORM_MAT_4F = 'mat4';

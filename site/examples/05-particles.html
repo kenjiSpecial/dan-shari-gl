@@ -1,0 +1,546 @@
+<html>
+	<title>DEV</title>
+	<meta charset="UTF-8" />
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" />
+	<style>
+		* {
+			margin: 0;
+		}
+
+		html,
+		body {
+			font-family: 'Roboto', sans-serif;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			background: #000000;
+		}
+
+		canvas {
+			background: #000000;
+			display: block;
+		}
+
+		.dsr-desc {
+			position: absolute;
+			bottom: 20px;
+			left: 20px;
+			color: #cccccc;
+			font-size: 14px;
+			line-height: 1.75em;
+			z-index: 10;
+		}
+
+		.dsr-desc a {
+			color: #ffffff;
+		}
+	</style>
+	<meta
+		name="viewport"
+		content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+	/>
+
+	<body>
+		<div class="dsr-desc"><p class="dsr-p">#05 - particles#01</p></div>
+
+		<script src="./vendors/dat.gui.min.js"></script>
+		<script src="./vendors/stats.min.js"></script>
+		<script src="./vendors/TweenMax.js"></script>
+		<script src="./vendors/gl-matrix.js"></script>
+
+		<script src="./lib/dan-shari-gl.umd.js"></script>
+
+		<script>
+			const vertexShaderSrc = `
+                precision highp float;
+
+                attribute vec4 position;
+                attribute vec2 uv;
+                attribute vec2 mouse;
+
+                uniform mat4 uMVPMatrix;
+
+                varying vec2 vUv;
+
+                void main() {
+                    vUv = uv;
+                    gl_Position = uMVPMatrix * position;
+
+                    gl_Position.x = gl_Position.x + mouse.x * gl_Position.w;
+                    gl_Position.y = gl_Position.y + mouse.y * gl_Position.w;
+
+                }`;
+
+			const fragmentShaderSrc = `
+                precision highp float;
+
+                varying vec2 vUv;
+
+                void main(){
+                    gl_FragColor = vec4( vUv * 0.35,  0.175, 0.5);
+                }`;
+
+			var Cursor = (function() {
+				function Cursor(gl, rate, id) {
+					this.mouse = vec2.create();
+					this.isFadeout = false;
+					this.progress = 0;
+					this.positionArr = [];
+					this.positionDataArr = [];
+					this.incrementArr = [];
+					this.activePositionArr = [];
+					this.inc2 = 0.9;
+					this.inc1 = 0.9;
+					this.time = 0;
+					this.opacity = 1;
+					this.direction = id % 2 === 0 ? 1 : -1;
+					this.theta = rate * 2 * Math.PI;
+					this.rate = rate;
+					this.target = vec2.fromValues(rate * 2 - 1, 0);
+					this.ghostTarget = vec2.fromValues(rate * 2 - 1, 0);
+					this.isInitAnimationDone = false;
+					this.gl = gl;
+					this.program = dsr.createProgram(gl, vertexShaderSrc, fragmentShaderSrc);
+					this.createBuffers();
+					this.matrix = {
+						model: mat4.create(),
+						mv: mat4.create(),
+						mvp: mat4.create()
+					};
+					this.uniforms = dsr.getUniformLocations(gl, this.program, [
+						'uMVPMatrix',
+						'uMouse',
+						'uOpacity',
+						'uProgress'
+					]);
+				}
+
+				Cursor.prototype.update = function(camera, isAuto) {
+					this.time += 1 / 40 + (1 / 80) * Math.cos(Math.PI * this.rate * 2 + this.time);
+
+					if (isAuto) {
+						var radW, radH;
+						if (viewportWidth > viewportHeight) {
+							radW = viewportHeight / viewportWidth;
+							radH = 1;
+						} else {
+							radW = 1;
+							radH = viewportWidth / viewportHeight;
+						}
+						this.target[0] =
+                            Math.sin(this.time * this.direction) *
+                            Math.sin( this.time/3) *
+							Math.cos(this.theta + this.time ) * radW;
+						this.target[1] =
+							Math.sin(this.time * this.direction) *
+                            Math.cos( this.time/ 5) *
+                            Math.sin(this.theta + this.time / 1.5) * radH;
+						// this.target[0] = Math.cos(this.time * this.direction);
+					}
+
+					for (var ii = 0; ii < this.mouseFloat32Array.length; ii = ii + 2 * 4) {
+						var targetX = void 0;
+						var targetY = void 0;
+						var inc_1 = void 0;
+
+						if (ii === 0) {
+							targetX = this.target[0];
+							targetY = this.target[1];
+							inc_1 = this.inc1;
+						} else {
+							targetX = this.mouseFloat32Array[ii - 2];
+							targetY = this.mouseFloat32Array[ii - 3];
+							inc_1 = this.inc2;
+						}
+
+						var incX = (targetX - this.mouseFloat32Array[ii]) * inc_1;
+						var incY = (targetY - this.mouseFloat32Array[ii + 1]) * inc_1;
+						this.mouseFloat32Array[ii] += incX;
+						this.mouseFloat32Array[ii + 1] += incY;
+						this.mouseFloat32Array[ii + 2] += incX;
+						this.mouseFloat32Array[ii + 2 + 1] += incY;
+						this.mouseFloat32Array[ii + 4] += incX;
+						this.mouseFloat32Array[ii + 4 + 1] += incY;
+						this.mouseFloat32Array[ii + 6] += incX;
+						this.mouseFloat32Array[ii + 6 + 1] += incY;
+					}
+
+					// console.log(this.mouseFloat32Array);
+
+					var gl = this.gl;
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.mouse.buffer);
+					gl.bufferData(gl.ARRAY_BUFFER, this.mouseFloat32Array, gl.STATIC_DRAW);
+					gl.vertexAttribPointer(this.buffers.mouse.location, 2, gl.FLOAT, false, 0, 0);
+					gl.enableVertexAttribArray(this.buffers.mouse.location);
+					var _a = this.matrix,
+						model = _a.model,
+						mv = _a.mv,
+						mvp = _a.mvp; // mat4.rotateX(model, model, 0.01);
+
+					mat4.multiply(mv, camera.viewMatrix, model);
+					mat4.multiply(mvp, camera.projectionMatrix, mv);
+				};
+
+				Cursor.prototype.render = function() {
+					var _a = this.buffers,
+						position = _a.position,
+						mouse = _a.mouse,
+						index = _a.index,
+						uv = _a.uv;
+					var _b = this.uniforms,
+						uMVPMatrix = _b.uMVPMatrix,
+						uOpacity = _b.uOpacity,
+						uProgress = _b.uProgress;
+					var mvp = this.matrix.mvp;
+					this.gl.useProgram(this.program);
+					dsr.bindBuffer(this.gl, position.buffer, position.location, 3);
+					dsr.bindBuffer(this.gl, mouse.buffer, mouse.location, 2);
+					dsr.bindBuffer(this.gl, uv.buffer, uv.location, 2);
+					this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, index.buffer);
+					this.gl.uniformMatrix4fv(uMVPMatrix, false, mvp);
+					this.gl.uniform1f(uOpacity, this.opacity);
+					this.gl.uniform1f(uProgress, this.progress);
+					this.gl.drawElements(this.gl.TRIANGLES, index.cnt, this.gl.UNSIGNED_SHORT, 0);
+				};
+
+				Cursor.prototype.calcPositionParticles = function() {
+					var rad = 5;
+					var cnt = 0;
+
+					for (var zDis = 0; zDis <= rad; zDis = zDis + 0.4) {
+						if (zDis === 0) {
+							var phi = Math.PI / 2;
+							this.generatePostion(rad, phi, cnt, this.positionDataArr);
+						} else {
+							var dPhi = Math.asin(zDis / rad);
+							var phi0 = Math.PI / 2 - dPhi;
+							var phi1 = Math.PI / 2 + dPhi;
+							this.generatePostion(rad, phi0, cnt, this.positionDataArr);
+							this.generatePostion(rad, phi1, cnt, this.positionDataArr);
+						}
+
+						cnt = cnt + 1;
+					}
+
+					var minZ = 9999;
+					var maxZ = -9999;
+					this.positionDataArr.sort(function(a, b) {
+						return a.z - b.z < -1;
+					});
+
+					for (var ii = 0; ii < this.positionDataArr.length; ii = ii + 1) {
+						if (maxZ < this.positionDataArr[ii].z) {
+							maxZ = this.positionDataArr[ii].z;
+						}
+
+						if (minZ > this.positionDataArr[ii].z) {
+							minZ = this.positionDataArr[ii].z;
+						} // this.incrementArr[ii] = 1 - 0.9 *
+					}
+
+					for (var ii = 0; ii < this.positionDataArr.length; ii = ii + 1) {
+						this.incrementArr[ii] =
+							0.05 + ((this.positionDataArr[ii].z - minZ) / (maxZ - minZ)) * 0.95;
+
+						if (this.incrementArr[ii] < 0.45) {
+							this.incrementArr[ii] = 0.45;
+						} // this.incrementArr[ii] = this.incrementArr[ii] * this.incrementArr[ii];
+					} // console.log(minZ, maxZ);
+				};
+
+				Cursor.prototype.generatePostion = function(rad, phi, cnt, positionArr) {
+					var MAX_X_DIS = rad * Math.sin(phi);
+					var dDis = 1;
+					var radD = rad * 10; // const positionArr = [];
+
+					for (
+						var xDis = cnt % 2 === 0 ? 0 : dDis / 2;
+						xDis <= MAX_X_DIS;
+						xDis = xDis + dDis
+					) {
+						if (xDis === 0) {
+							var theta = Math.PI / 2;
+							var x = rad * Math.cos(theta) * Math.sin(phi);
+							var y = rad * Math.cos(phi);
+							var z = radD * Math.sin(theta) * Math.sin(phi);
+							positionArr.push({
+								x: x,
+								y: y,
+								z: z
+							});
+						} else {
+							var theta0 = Math.PI / 2 - Math.asin(xDis / rad);
+							var theta1 = Math.PI / 2 + Math.asin(xDis / rad);
+							var x0 = rad * Math.cos(theta0) * Math.sin(phi);
+							var y0 = rad * Math.cos(phi);
+							var z0 = radD * Math.sin(theta0) * Math.sin(phi);
+							var x1 = rad * Math.cos(theta1) * Math.sin(phi);
+							var y1 = rad * Math.cos(phi);
+							var z1 = radD * Math.sin(theta1) * Math.sin(phi);
+							positionArr.push({
+								x: x0,
+								y: y0,
+								z: z0
+							});
+							positionArr.push({
+								x: x1,
+								y: y1,
+								z: z1
+							});
+						}
+					}
+				};
+
+				Cursor.prototype.createBuffers = function() {
+					var _a = dsr.createSimplePlane(),
+						vertices = _a.vertices,
+						indices = _a.indices,
+						uvs = _a.uvs; // const rad = 5 * pixelRatio;
+
+					var indexArr = [];
+					var mouseArr = [];
+					var uvArr = [];
+					var gl = this.gl;
+					var rectCnt = 0;
+					var size = 300;
+					var side = 0.2;
+					var side2 = 1.5;
+					var modelMat = mat4.create();
+					var center = vec3.create();
+					var up = vec3.fromValues(0, 1, 0);
+					var eye = vec3.create();
+
+					for (var ii = 0; ii < size; ii = ii + 1) {
+						var PHI = (Math.sqrt(5) + 1) / 2; //黄金比
+
+						var CA = 360;
+						var GR = CA - CA / PHI;
+						var theta = (GR / 360) * ii * Math.PI * 2;
+						var phi = ((ii / size) * Math.PI * 80) / 180;
+						var rad = (ii / size) * 3;
+						var miniRad = ii / size;
+						var x = rad * Math.cos(theta) * Math.sin(phi);
+						var y = rad * Math.sin(theta) * Math.sin(phi);
+						var z = rad * Math.cos(phi);
+						var minX = 0; //miniRad * Math.cos((ii / size) * Math.PI * 2);
+
+						var minY = 0; //miniRad * Math.sin((ii / size) * Math.PI * 2);
+
+						var minZ = 0;
+						eye[0] = x;
+						eye[1] = y;
+						eye[2] = z + 1;
+						mat4.lookAt(modelMat, eye, center, up);
+
+						for (var kk = 0; kk < vertices.length; kk = kk + 3) {
+							var calVec = vec3.fromValues(
+								vertices[kk],
+								vertices[kk + 1],
+								vertices[kk + 2]
+							);
+							vec3.transformMat4(calVec, calVec, modelMat);
+							this.positionArr.push(x + calVec[0] * side);
+							this.positionArr.push(y + calVec[1] * side);
+							this.positionArr.push(z + calVec[2] * side);
+
+							if (ii === 0) {
+								this.activePositionArr.push(minX + vertices[kk] * side2);
+								this.activePositionArr.push(minY + vertices[kk + 1] * side2);
+								this.activePositionArr.push(minZ + vertices[kk + 2] * side2);
+							} else {
+								this.activePositionArr.push(0);
+								this.activePositionArr.push(0);
+								this.activePositionArr.push(0);
+							}
+						}
+
+						for (var _i = 0, uvs_1 = uvs; _i < uvs_1.length; _i++) {
+							var uv = uvs_1[_i];
+							uvArr.push(uv);
+						}
+
+						for (var _b = 0, indices_1 = indices; _b < indices_1.length; _b++) {
+							var index = indices_1[_b];
+							indexArr.push(rectCnt * 4 + index);
+							mouseArr.push(0);
+							mouseArr.push(0);
+						}
+
+						rectCnt = rectCnt + 1;
+					}
+
+					this.vertices = new Float32Array(this.positionArr);
+					this.mouseFloat32Array = new Float32Array(mouseArr);
+					this.cnt = this.vertices.length / 3;
+					this.buffers = {
+						position: dsr.createBufferWithLocation(
+							gl,
+							this.program,
+							this.vertices,
+							'position'
+						),
+						mouse: dsr.createBufferWithLocation(
+							gl,
+							this.program,
+							this.mouseFloat32Array,
+							'mouse'
+						),
+						uv: dsr.createBufferWithLocation(
+							gl,
+							this.program,
+							new Float32Array(uvArr),
+							'uv'
+						),
+						index: dsr.createIndex(gl, new Uint16Array(indexArr))
+					};
+				};
+
+				Cursor.prototype.updateProgress = function() {
+					// for (const ptIndex of this.vertices) {
+					// }
+					var vertexSize = this.vertices.length;
+
+					for (var ii = 0; ii < vertexSize; ii = ii + 1) {
+						this.vertices[ii] =
+							this.positionArr[ii] * (1 - this.progress) +
+							this.activePositionArr[ii] * this.progress;
+					}
+
+					var gl = this.gl;
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.position.buffer);
+					gl.bufferData(gl.ARRAY_BUFFER, this.vertices, gl.STATIC_DRAW);
+					gl.vertexAttribPointer(
+						this.buffers.position.location,
+						3,
+						gl.FLOAT,
+						false,
+						0,
+						0
+					);
+					gl.enableVertexAttribArray(this.buffers.position.location);
+				};
+
+				return Cursor;
+			})();
+
+			var canvas = document.createElement('canvas');
+			const params = {
+				antialias: true,
+				preserveDrawingBuffer: true,
+				premultipliedAlpha: false
+			};
+			var gl = canvas.getContext('webgl', params);
+			gl.clearColor(0, 0, 0, 1);
+			gl.enable(gl.BLEND);
+			gl.disable(gl.DEPTH_TEST);
+			gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+			document.body.appendChild(canvas);
+
+			var viewportWidth, viewportHeight;
+			// var cursor = {};
+			var cursorArr = [];
+			var cursorSize = 150;
+
+			for (let ii = 0; ii < cursorSize; ii++) {
+				var cursor = new Cursor(gl, ii / cursorSize, ii);
+				cursorArr.push(cursor);
+			}
+
+			resize();
+			window.addEventListener('resize', resize);
+
+			var camera = new dsr.PerspectiveCamera(
+				window.innerWidth,
+				window.innerHeight,
+				45,
+				0.1,
+				1000
+			);
+			camera.updatePosition(0, 0, 100);
+			camera.updateLookAtPosition(0, 0, 0);
+			camera.updateViewMatrix();
+
+			/**
+			 * set debug tool(dat.gui)
+			 **/
+			let loopId;
+			let player = {
+				playAndStop: function() {
+					isPlay = !isPlay;
+					if (isPlay) {
+						playAndStopGui.name('pause');
+						loopId = requestAnimationFrame(tick);
+					} else {
+						playAndStopGui.name('play');
+						cancelAnimationFrame(loopId);
+					}
+				}
+			};
+			let isPlay = true;
+			let gui = new window.dat.GUI();
+			let playAndStopGui = gui.add(player, 'playAndStop').name('pause');
+
+			let stats = new Stats();
+			document.body.appendChild(stats.dom);
+
+			tick();
+
+			function resize() {
+				viewportWidth = window.innerWidth;
+				viewportHeight = window.innerHeight;
+				canvas.width = viewportWidth;
+				canvas.height = viewportHeight;
+
+				if (camera) camera.updateSize(viewportWidth, viewportHeight);
+			}
+
+			function tick() {
+				stats.update();
+
+				gl.clearColor(0, 0, 0, 1);
+				gl.enable(gl.DEPTH_TEST);
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+				gl.viewport(0, 0, viewportWidth, viewportHeight);
+				gl.enable(gl.DEPTH_TEST);
+				// gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+				gl.blendFunc(gl.ONE, gl.ONE);
+
+				for (var ii = 0; ii < cursorArr.length; ii = ii + 1) {
+					cursorArr[ii].update(camera, true);
+					cursorArr[ii].render();
+				}
+
+				// gl.viewport(0, 0, viewportWidth, viewportHeight);
+
+				// gl.useProgram(sphere.progoram);
+
+				// dsr.bindBuffer(
+				// 	gl,
+				// 	sphere.buffers.position.buffer,
+				// 	sphere.buffers.position.location,
+				// 	3
+				// );
+				// dsr.bindBuffer(gl, sphere.buffers.normal.buffer, sphere.buffers.normal.location, 3);
+
+				// gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphere.buffers.index.buffer);
+
+				// gl.uniformMatrix4fv(sphere.uniforms.uMVPMatrix, false, sphere.matrix.mvpMatrix);
+
+				// gl.drawElements(gl.TRIANGLES, sphere.buffers.index.cnt, gl.UNSIGNED_SHORT, 0);
+
+				loopId = requestAnimationFrame(tick);
+			}
+		</script>
+		<!-- Global site tag (gtag.js) - Google Analytics -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-42485016-2"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag() {
+				dataLayer.push(arguments);
+			}
+			gtag('js', new Date());
+
+			gtag('config', 'UA-42485016-2');
+		</script>
+	</body>
+</html>

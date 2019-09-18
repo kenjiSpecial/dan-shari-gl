@@ -13,7 +13,8 @@ export * from './math/ray';
 export * from './camera/camera';
 
 // sub compoents
-export * from './subComponents/cameracontroller';
-export * from './subComponents/textLayout';
-export * from './subComponents/textRendering';
-export * from './subComponents/TexturePool';
+export * from './extra/cameracontroller';
+export * from './extra/textLayout';
+export * from './extra/textRendering';
+export * from './extra/TexturePool';
+export * from './extra/swapRenderer';
