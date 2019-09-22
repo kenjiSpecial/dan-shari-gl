@@ -2404,11 +2404,23 @@ img {
 				<li class=" tsd-kind-method tsd-parent-kind-class">
 					<a href="fbo.html#bind" class="tsd-kind-icon">bind</a>
 				</li>
-				<li class=" tsd-kind-method tsd-parent-kind-class">
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a href="fbo.html#bindtex" class="tsd-kind-icon">bind<wbr>Tex</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
 					<a href="fbo.html#createdepth" class="tsd-kind-icon">create<wbr>Depth</a>
 				</li>
 				<li class=" tsd-kind-method tsd-parent-kind-class">
+					<a href="fbo.html#gettexture" class="tsd-kind-icon">get<wbr>Texture</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class">
+					<a href="fbo.html#resize" class="tsd-kind-icon">resize</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class">
 					<a href="fbo.html#unbind" class="tsd-kind-icon">unbind</a>
+				</li>
+				<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a href="fbo.html#updatedepth" class="tsd-kind-icon">update<wbr>Depth</a>
 				</li>
 			</ul>
 		</li>
@@ -2449,8 +2461,12 @@ img {
 						<h3>Methods</h3>
 						<ul class="tsd-index-list">
 							<li class="tsd-kind-method tsd-parent-kind-class"><a href="fbo.html#bind" class="tsd-kind-icon">bind</a></li>
-							<li class="tsd-kind-method tsd-parent-kind-class"><a href="fbo.html#createdepth" class="tsd-kind-icon">create<wbr>Depth</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="fbo.html#bindtex" class="tsd-kind-icon">bind<wbr>Tex</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="fbo.html#createdepth" class="tsd-kind-icon">create<wbr>Depth</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class"><a href="fbo.html#gettexture" class="tsd-kind-icon">get<wbr>Texture</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class"><a href="fbo.html#resize" class="tsd-kind-icon">resize</a></li>
 							<li class="tsd-kind-method tsd-parent-kind-class"><a href="fbo.html#unbind" class="tsd-kind-icon">unbind</a></li>
+							<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="fbo.html#updatedepth" class="tsd-kind-icon">update<wbr>Depth</a></li>
 						</ul>
 					</section>
 				</div>
@@ -2462,13 +2478,13 @@ img {
 				<a name="constructor" class="tsd-anchor"></a>
 				<h3>constructor</h3>
 				<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-					<li class="tsd-signature tsd-kind-icon">new FBO<span class="tsd-signature-symbol">(</span>gl<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WebGLRenderingContext</span>, width<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, height<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, texture<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">WebGLTexture</span>, isDepthNeed<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="fbo.html" class="tsd-signature-type">FBO</a></li>
+					<li class="tsd-signature tsd-kind-icon">new FBO<span class="tsd-signature-symbol">(</span>gl<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WebGLRenderingContext</span>, width<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, height<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, texture<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">WebGLTexture</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span>, isDepthNeed<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="fbo.html" class="tsd-signature-type">FBO</a></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in extra/fbo.ts:8</li>
+								<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L12">src/extra/fbo.ts:12</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -2483,7 +2499,7 @@ img {
 								<h5>height: <span class="tsd-signature-type">number</span></h5>
 							</li>
 							<li>
-								<h5><span class="tsd-flag ts-flagOptional">Optional</span> texture: <span class="tsd-signature-type">WebGLTexture</span></h5>
+								<h5><span class="tsd-flag ts-flagOptional">Optional</span> texture: <span class="tsd-signature-type">WebGLTexture</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></h5>
 							</li>
 							<li>
 								<h5><span class="tsd-flag ts-flagDefault value">Default value</span> isDepthNeed: <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> =&nbsp;false</span></h5>
@@ -2502,17 +2518,17 @@ img {
 				<div class="tsd-signature tsd-kind-icon">buffer<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WebGLFramebuffer</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in extra/fbo.ts:6</li>
+						<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L10">src/extra/fbo.ts:10</a></li>
 					</ul>
 				</aside>
 			</section>
 			<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
 				<a name="depth" class="tsd-anchor"></a>
 				<h3><span class="tsd-flag ts-flagPrivate">Private</span> <span class="tsd-flag ts-flagOptional">Optional</span> depth</h3>
-				<div class="tsd-signature tsd-kind-icon">depth<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WebGLRenderingContextBase</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></div>
+				<div class="tsd-signature tsd-kind-icon">depth<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WebGLRenderbuffer</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in extra/fbo.ts:8</li>
+						<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L12">src/extra/fbo.ts:12</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -2522,7 +2538,7 @@ img {
 				<div class="tsd-signature tsd-kind-icon">gl<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WebGLRenderingContext</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in extra/fbo.ts:3</li>
+						<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L7">src/extra/fbo.ts:7</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -2532,7 +2548,7 @@ img {
 				<div class="tsd-signature tsd-kind-icon">height<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in extra/fbo.ts:5</li>
+						<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L9">src/extra/fbo.ts:9</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -2542,7 +2558,7 @@ img {
 				<div class="tsd-signature tsd-kind-icon">texture<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WebGLTexture</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in extra/fbo.ts:7</li>
+						<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L11">src/extra/fbo.ts:11</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -2552,7 +2568,7 @@ img {
 				<div class="tsd-signature tsd-kind-icon">width<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in extra/fbo.ts:4</li>
+						<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L8">src/extra/fbo.ts:8</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -2569,7 +2585,41 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in extra/fbo.ts:49</li>
+								<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L69">src/extra/fbo.ts:69</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+				<a name="bindtex" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagPrivate">Private</span> bind<wbr>Tex</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<li class="tsd-signature tsd-kind-icon">bind<wbr>Tex<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L39">src/extra/fbo.ts:39</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+				<a name="createdepth" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagPrivate">Private</span> create<wbr>Depth</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<li class="tsd-signature tsd-kind-icon">create<wbr>Depth<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L49">src/extra/fbo.ts:49</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -2577,18 +2627,50 @@ img {
 				</ul>
 			</section>
 			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-				<a name="createdepth" class="tsd-anchor"></a>
-				<h3>create<wbr>Depth</h3>
+				<a name="gettexture" class="tsd-anchor"></a>
+				<h3>get<wbr>Texture</h3>
 				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-					<li class="tsd-signature tsd-kind-icon">create<wbr>Depth<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					<li class="tsd-signature tsd-kind-icon">get<wbr>Texture<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">WebGLTexture</span></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in extra/fbo.ts:38</li>
+								<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L88">src/extra/fbo.ts:88</a></li>
 							</ul>
 						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">null</span>
+							<span class="tsd-signature-symbol"> | </span>
+							<span class="tsd-signature-type">WebGLTexture</span>
+						</h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+				<a name="resize" class="tsd-anchor"></a>
+				<h3>resize</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+					<li class="tsd-signature tsd-kind-icon">resize<span class="tsd-signature-symbol">(</span>width<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, height<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, texture<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">WebGLTexture</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L77">src/extra/fbo.ts:77</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>width: <span class="tsd-signature-type">number</span></h5>
+							</li>
+							<li>
+								<h5>height: <span class="tsd-signature-type">number</span></h5>
+							</li>
+							<li>
+								<h5><span class="tsd-flag ts-flagOptional">Optional</span> texture: <span class="tsd-signature-type">WebGLTexture</span></h5>
+							</li>
+						</ul>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 					</li>
 				</ul>
@@ -2603,7 +2685,24 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in extra/fbo.ts:53</li>
+								<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L73">src/extra/fbo.ts:73</a></li>
+							</ul>
+						</aside>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+				<a name="updatedepth" class="tsd-anchor"></a>
+				<h3><span class="tsd-flag ts-flagPrivate">Private</span> update<wbr>Depth</h3>
+				<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<li class="tsd-signature tsd-kind-icon">update<wbr>Depth<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/kenjiSpecial/dan-shari-gl/blob/31164a8/src/extra/fbo.ts#L53">src/extra/fbo.ts:53</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>

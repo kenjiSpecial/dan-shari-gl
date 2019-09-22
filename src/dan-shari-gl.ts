@@ -9,6 +9,7 @@ export * from './utils/generate/generateGeometry';
 export * from './utils/generate/generateSimpleGeometry';
 
 export * from './utils/common/constants';
+export * from './utils/common/shaders';
 
 export * from './math/math';
 export * from './math/ray';
@@ -21,3 +22,4 @@ export * from './extra/textLayout';
 export * from './extra/textRendering';
 export * from './extra/TexturePool';
 export * from './extra/swapRenderer';
+export * from './extra/fbo';

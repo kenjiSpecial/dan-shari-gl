@@ -66,7 +66,7 @@ export class SwapRenderer {
 			RGB,
 			LINEAR,
 			LINEAR,
-			~CLAMP_TO_EDGE,
+			CLAMP_TO_EDGE,
 			CLAMP_TO_EDGE,
 			type
 		);

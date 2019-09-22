@@ -1,4 +1,4 @@
-var version = "1.2.4";
+var version = "1.3.0";
 
 var FLOAT = 0x1406;
 var RGB = 0x1907;
@@ -25,7 +25,6 @@ var UNIFORM_1I = '1i';
 var UNIFORM_2F = '2f';
 var UNIFORM_3F = '3f';
 var UNIFORM_MAT_4F = 'mat4';
-//# sourceMappingURL=constants.js.map
 
 /**
  * Common utilities
@@ -743,7 +742,6 @@ function addKeyword(sources, keywords) {
     }
     return keywords + sources;
 }
-//# sourceMappingURL=gl-functions.js.map
 
 /**
  *
@@ -764,18 +762,9 @@ function createEmptyTexture(gl, textureWidth, textureHeight, format, minFilter, 
     if (wrapS === void 0) { wrapS = CLAMP_TO_EDGE; }
     if (wrapT === void 0) { wrapT = CLAMP_TO_EDGE; }
     if (type === void 0) { type = UNSIGNED_BYTE; }
-    var targetTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-    // define size and format of level 0
-    var level = 0;
-    // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
-    gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureHeight, 0, format, type, null);
-    // set the filtering so we don't need mips
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapS);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapT);
-    return targetTexture;
+    var texture = gl.createTexture();
+    updateEmptyImageTexture(gl, texture, textureWidth, textureHeight, format, minFilter, magFilter, wrapS, wrapT, type);
+    return texture;
 }
 function createImageTexture(gl, canvasImage, format, isFlip, isMipmap) {
     if (format === void 0) { format = RGB; }
@@ -788,7 +777,6 @@ function createCustomTypeImageTexture(gl, canvasImage, format, type, isFlip, isM
     if (isFlip === void 0) { isFlip = false; }
     if (isMipmap === void 0) { isMipmap = false; }
     var texture = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, isFlip ? 0 : 1);
     gl.texImage2D(gl.TEXTURE_2D, 0, format, format, type, canvasImage);
@@ -817,7 +805,6 @@ function isPowerOf2(value) {
  */
 function updateImageTexture(gl, texture, image, format) {
     if (format === void 0) { format = RGB; }
-    gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, image);
     if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
@@ -831,6 +818,25 @@ function updateImageTexture(gl, texture, image, format) {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     }
+}
+function updateEmptyImageTexture(gl, texture, textureWidth, textureHeight, format, minFilter, magFilter, wrapS, wrapT, type) {
+    if (format === void 0) { format = RGB; }
+    if (minFilter === void 0) { minFilter = LINEAR; }
+    if (magFilter === void 0) { magFilter = LINEAR; }
+    if (wrapS === void 0) { wrapS = CLAMP_TO_EDGE; }
+    if (wrapT === void 0) { wrapT = CLAMP_TO_EDGE; }
+    if (type === void 0) { type = UNSIGNED_BYTE; }
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    // define size and format of level 0
+    var level = 0;
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
+    gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureHeight, 0, format, type, null);
+    // set the filtering so we don't need mips
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapS);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapT);
+    return texture;
 }
 /**
  *
@@ -846,7 +852,6 @@ function activeTexture(gl, texture, uniformLocation, textureNum) {
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.uniform1i(uniformLocation, textureNum);
 }
-//# sourceMappingURL=gl-textures.js.map
 
 /**
  * load json with ajax
@@ -906,7 +911,6 @@ function loadDraco(dracoUrl, callback) {
     xhr.open('GET', dracoUrl, true);
     xhr.send(null);
 }
-//# sourceMappingURL=assets-functions.js.map
 
 function getSphere(radius, latitudeBands, longitudeBands) {
     if (radius === void 0) { radius = 2; }
@@ -1020,7 +1024,6 @@ function mergeGeomtory(geometries) {
         indices: indices
     };
 }
-//# sourceMappingURL=generateGeometry.js.map
 
 // segment is one
 function createSimpleBox() {
@@ -1325,7 +1328,10 @@ function createSuperSimpleplane(scaleX, scaleY) {
     if (scaleY === void 0) { scaleY = 1; }
     return new Float32Array([-scaleX, -scaleY, scaleX, -scaleY, -scaleX, scaleY, scaleX, scaleY]);
 }
-//# sourceMappingURL=generateSimpleGeometry.js.map
+
+var fullscreenVertShader = "\nprecision highp float;\n\nattribute vec3 position;\n\nuniform vec2 px;\n\nvarying vec2 vUv;\n\nvoid main(){\n    vUv = vec2(0.5)+(position.xy)*0.5;\n    gl_Position = vec4(position, 1.0);\n}\n";
+var fillFragShader = "\nprecision highp float;\n\nvarying vec2 vUv;\n\nvoid main(){\n    gl_FragColor = vec4(vUv, 0.0, 1.0);\n}\n";
+var texFragShader = "\nprecision highp float;\n\nuniform sampler2D uTexture;\n\nvarying vec2 vUv;\n\nvoid main(){\n    vec4 texColor = texture2D(uTexture, vUv);\n    gl_FragColor = texColor;\n}\n";
 
 function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
@@ -1359,7 +1365,6 @@ function radToDeg(value) {
     // 180 / Math.PI = 57.29577951308232
     return 57.29577951308232 * value;
 }
-//# sourceMappingURL=math.js.map
 
 var Ray = /** @class */ (function () {
     function Ray() {
@@ -1483,7 +1488,6 @@ var Ray = /** @class */ (function () {
     };
     return Ray;
 }());
-//# sourceMappingURL=ray.js.map
 
 /*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
@@ -1619,7 +1623,6 @@ var OrthoCamera = /** @class */ (function (_super) {
     };
     return OrthoCamera;
 }(Camera));
-//# sourceMappingURL=camera.js.map
 
 var DampedAction = /** @class */ (function () {
     function DampedAction() {
@@ -2017,7 +2020,6 @@ var CameraController = /** @class */ (function () {
     };
     return CameraController;
 }());
-//# sourceMappingURL=cameracontroller.js.map
 
 // convert layout-bmfont-text into layout
 // https://github.com/Jam3/layout-bmfont-text
@@ -2345,7 +2347,6 @@ function getCapHeight(font) {
     }
     return 0;
 }
-//# sourceMappingURL=textLayout.js.map
 
 var TextRendering = /** @class */ (function () {
     function TextRendering(gl, textLayout, bitmapImage) {
@@ -2376,7 +2377,6 @@ var TextRendering = /** @class */ (function () {
     }
     return TextRendering;
 }());
-//# sourceMappingURL=textRendering.js.map
 
 var TexturePools = /** @class */ (function () {
     function TexturePools() {
@@ -2424,7 +2424,6 @@ var TexturePools = /** @class */ (function () {
     };
     return TexturePools;
 }());
-//# sourceMappingURL=TexturePool.js.map
 
 var SwapRenderer = /** @class */ (function () {
     function SwapRenderer(gl) {
@@ -2446,7 +2445,7 @@ var SwapRenderer = /** @class */ (function () {
         };
     };
     SwapRenderer.prototype.initTexture = function (name, width, height, type) {
-        var texture = createEmptyTexture(this.gl, width, height, RGB, LINEAR, LINEAR, ~CLAMP_TO_EDGE, CLAMP_TO_EDGE, type);
+        var texture = createEmptyTexture(this.gl, width, height, RGB, LINEAR, LINEAR, CLAMP_TO_EDGE, CLAMP_TO_EDGE, type);
         this.textures[name] = texture;
     };
     SwapRenderer.prototype.initTextureWithImage = function (name, type, image) {
@@ -2546,10 +2545,57 @@ var SwapRenderer = /** @class */ (function () {
     };
     return SwapRenderer;
 }());
-//# sourceMappingURL=swapRenderer.js.map
+
+var FBO = /** @class */ (function () {
+    function FBO(gl, width, height, texture, isDepthNeed) {
+        if (isDepthNeed === void 0) { isDepthNeed = false; }
+        this.gl = gl;
+        this.width = width;
+        this.height = height;
+        this.texture =
+            texture === undefined || texture === null
+                ? createEmptyTexture(this.gl, width, height)
+                : texture;
+        this.buffer = this.gl.createFramebuffer();
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.buffer);
+        this.bindTex();
+        if (isDepthNeed) {
+            this.createDepth();
+            this.updateDepth();
+        }
+    }
+    FBO.prototype.bindTex = function () {
+        this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_2D, this.texture, 0);
+    };
+    FBO.prototype.createDepth = function () {
+        this.depth = this.gl.createRenderbuffer();
+    };
+    FBO.prototype.updateDepth = function () {
+        this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, this.depth);
+        this.gl.renderbufferStorage(this.gl.RENDERBUFFER, this.gl.DEPTH_COMPONENT16, this.width, this.height);
+        this.gl.framebufferRenderbuffer(this.gl.FRAMEBUFFER, this.gl.DEPTH_ATTACHMENT, this.gl.RENDERBUFFER, this.depth);
+    };
+    FBO.prototype.bind = function () {
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.buffer);
+    };
+    FBO.prototype.unbind = function () {
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+    };
+    FBO.prototype.resize = function (width, height, texture) {
+        this.width = width;
+        this.height = height;
+        this.bind();
+        updateEmptyImageTexture(this.gl, this.texture, width, height);
+        this.bindTex();
+        this.updateDepth();
+    };
+    FBO.prototype.getTexture = function () {
+        return this.texture;
+    };
+    return FBO;
+}());
 
 console.log("dan-shari-gl: " + version);
-//# sourceMappingURL=dan-shari-gl.js.map
 
-export { CLAMP_TO_EDGE, COLOR_REPEAT, Camera, CameraController, DEPTH_COMPONENT16, EMPTY_CANVAS_COLOR, EMPTY_CANVAS_SIZE, FLOAT, LINEAR, LINEAR_MIPMAP_LINEAR, LINEAR_MIPMAP_NEAREST, NEAREST, NEAREST_MIPMAP_LINEAR, NEAREST_MIPMAP_NEAREST, OrthoCamera, PerspectiveCamera, REPEAT, RGB, Ray, SwapRenderer, TextLayout, TextLines, TextRendering, TexturePools, UNIFORM_1F, UNIFORM_1I, UNIFORM_2F, UNIFORM_3F, UNIFORM_MAT_4F, UNSIGNED_BYTE, activeTexture, addKeyword, addLineNumbers, bindBuffer, calculateCircleCenter, castMouse, clamp, compileGLShader, createAndBindDepthBuffer, createBuffer, createBufferWithLocation, createCustomTypeImageTexture, createEmptyTexture, createFrameBufferWithTexture, createImageTexture, createIndex, createProgram, createSimpleBox, createSimplePlane, createSuperSimpleplane, degToRad, generateFaceFromIndex, getAjaxJson, getImage, getPlane, getSphere, getUniformLocations, loadDraco, mergeGeomtory, mix, radToDeg, range, updateArrayBuffer, updateImageTexture };
+export { CLAMP_TO_EDGE, COLOR_REPEAT, Camera, CameraController, DEPTH_COMPONENT16, EMPTY_CANVAS_COLOR, EMPTY_CANVAS_SIZE, FBO, FLOAT, LINEAR, LINEAR_MIPMAP_LINEAR, LINEAR_MIPMAP_NEAREST, NEAREST, NEAREST_MIPMAP_LINEAR, NEAREST_MIPMAP_NEAREST, OrthoCamera, PerspectiveCamera, REPEAT, RGB, Ray, SwapRenderer, TextLayout, TextLines, TextRendering, TexturePools, UNIFORM_1F, UNIFORM_1I, UNIFORM_2F, UNIFORM_3F, UNIFORM_MAT_4F, UNSIGNED_BYTE, activeTexture, addKeyword, addLineNumbers, bindBuffer, calculateCircleCenter, castMouse, clamp, compileGLShader, createAndBindDepthBuffer, createBuffer, createBufferWithLocation, createCustomTypeImageTexture, createEmptyTexture, createFrameBufferWithTexture, createImageTexture, createIndex, createProgram, createSimpleBox, createSimplePlane, createSuperSimpleplane, degToRad, fillFragShader, fullscreenVertShader, generateFaceFromIndex, getAjaxJson, getImage, getPlane, getSphere, getUniformLocations, loadDraco, mergeGeomtory, mix, radToDeg, range, texFragShader, updateArrayBuffer, updateEmptyImageTexture, updateImageTexture };
 //# sourceMappingURL=dan-shari-gl.es5.js.map

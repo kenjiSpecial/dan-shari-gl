@@ -16,8 +16,6 @@ void main(){
 export const fillFragShader = `
 precision highp float;
 
-attribute vec3 position;
-
 varying vec2 vUv;
 
 void main(){
@@ -29,8 +27,6 @@ export const texFragShader = `
 precision highp float;
 
 uniform sampler2D uTexture;
-
-attribute vec3 position;
 
 varying vec2 vUv;
 

@@ -23,23 +23,21 @@ export function createEmptyTexture(
 	wrapT: number = CLAMP_TO_EDGE,
 	type: number = UNSIGNED_BYTE
 ) {
-	const targetTexture = gl.createTexture();
-	gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+	const texture = gl.createTexture() as WebGLTexture;
+	updateEmptyImageTexture(
+		gl,
+		texture,
+		textureWidth,
+		textureHeight,
+		format,
+		minFilter,
+		magFilter,
+		wrapS,
+		wrapT,
+		type
+	);
 
-	// define size and format of level 0
-	const level = 0;
-	const border = 0;
-
-	// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
-	gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureHeight, 0, format, type, null);
-
-	// set the filtering so we don't need mips
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapS);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapT);
-
-	return targetTexture;
+	return texture;
 }
 
 export function createImageTexture(
@@ -68,7 +66,6 @@ export function createCustomTypeImageTexture(
 	isMipmap: boolean = false
 ) {
 	const texture = gl.createTexture();
-	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 
 	gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, isFlip ? 0 : 1);
@@ -105,7 +102,6 @@ export function updateImageTexture(
 	image: HTMLImageElement,
 	format: number = RGB
 ) {
-	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 	gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, image);
 
@@ -119,6 +115,36 @@ export function updateImageTexture(
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 	}
+}
+
+export function updateEmptyImageTexture(
+	gl: WebGLRenderingContext,
+	texture: WebGLTexture,
+	textureWidth: number,
+	textureHeight: number,
+	format: number = RGB,
+	minFilter: number = LINEAR,
+	magFilter: number = LINEAR,
+	wrapS: number = CLAMP_TO_EDGE,
+	wrapT: number = CLAMP_TO_EDGE,
+	type: number = UNSIGNED_BYTE
+) {
+	gl.bindTexture(gl.TEXTURE_2D, texture);
+
+	// define size and format of level 0
+	const level = 0;
+	const border = 0;
+
+	// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
+	gl.texImage2D(gl.TEXTURE_2D, level, format, textureWidth, textureHeight, 0, format, type, null);
+
+	// set the filtering so we don't need mips
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapS);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapT);
+
+	return texture;
 }
 
 /**

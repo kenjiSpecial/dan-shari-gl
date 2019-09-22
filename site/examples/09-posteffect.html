@@ -1,0 +1,616 @@
+<html>
+	<title>DEV</title>
+	<meta charset="UTF-8" />
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" />
+	<style>
+		* {
+			margin: 0;
+		}
+
+		html,
+		body {
+			font-family: 'Roboto', sans-serif;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+		}
+
+		canvas {
+			background: #000000;
+			display: block;
+		}
+
+		.dsr-desc {
+			position: absolute;
+			bottom: 20px;
+			left: 20px;
+			color: #cccccc;
+			font-size: 14px;
+			line-height: 1.75em;
+			z-index: 10;
+		}
+
+		.dsr-desc a {
+			color: #ffffff;
+		}
+	</style>
+	<meta
+		name="viewport"
+		content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+	/>
+
+	<body>
+		<div class="dsr-desc"><p class="dsr-p">#09 - posteffect</p></div>
+
+		<script src="./vendors/dat.gui.min.js"></script>
+		<script src="./vendors/stats.min.js"></script>
+		<script src="./vendors/TweenMax.js"></script>
+		<script src="./vendors/gl-matrix.js"></script>
+		<script src="./vendors/chroma.min.js"></script>
+
+		<script src="../../dist/dan-shari-gl.umd.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/tweakpane@1.0.5/dist/tweakpane.min.js"></script>
+
+		<script>
+			var canvas = document.createElement('canvas');
+			var gl = canvas.getContext('webgl2');
+			if (!gl) {
+				gl = canvas.getContext('webgl');
+			}
+			gl.getExtension('OES_element_index_uint');
+
+			document.body.appendChild(canvas);
+
+			resize();
+			window.addEventListener('resize', resize);
+
+			var camera = new dsr.PerspectiveCamera(
+				window.innerWidth,
+				window.innerHeight,
+				45,
+				0.1,
+				1000
+			);
+			camera.updatePosition(0, 15, 30);
+			camera.updateLookAtPosition(0, 0, 0);
+			camera.updateViewMatrix();
+
+			var cameraController = new dsr.CameraController(camera);
+			var stats;
+			var lightColor = chroma('#aaaaaa').gl();
+			var materialColor = chroma('#cccc50').gl();
+			var shininess = 1.5;
+			var specular = 1;
+			var options = {
+				isPostEffect: true,
+				isFXAA: true
+			};
+
+			var viewportWidth, viewportHeight;
+			var mesh;
+			var fbo;
+			var fbo2;
+			var posteffeet;
+
+			dsr.getAjaxJson('./assets/json/3dcoat-materialball.json', function(data) {
+				// data
+				const program = dsr.createProgram(gl, vertexShaderSrc, fragmentShaderSrc);
+
+				mesh = {};
+
+				mesh.program = program;
+				// console.log(data.verts, data.texcoords, data.normals);
+				mesh.buffers = {
+					position: dsr.createBufferWithLocation(
+						gl,
+						program,
+						new Float32Array(data.verts),
+						'position'
+					),
+					normal: dsr.createBufferWithLocation(
+						gl,
+						program,
+						new Float32Array(data.normals),
+						'normal'
+					),
+					index: dsr.createIndex(gl, new Uint32Array(data.indices))
+				};
+
+				mesh.matrix = {
+					model: mat4.create(),
+					mv: mat4.create(),
+					mvp: mat4.create(),
+					normal: mat4.create()
+				};
+
+				// mesh.matrix.model = mat4.fromTranslation(mesh.matrix.model, [0, 7.78, 0]);
+
+				const modelInverse = mat4.create();
+				mat4.invert(modelInverse, mesh.matrix.model);
+				mat4.transpose(mesh.matrix.normal, modelInverse);
+
+				mesh.uniforms = dsr.getUniformLocations(gl, program, [
+					'uModelMatrix',
+					'uMVPMatrix',
+					'uNormalMatrix',
+					'uCameraPosition',
+					'uLightDirection',
+					'uShininess',
+					'uSpecular',
+					'uLightColor',
+					'uMaterialColor'
+				]);
+			});
+
+			addGui();
+			createFBO();
+			setTimeout(() => {
+				createPostEffect();
+				tick();
+			});
+
+			function createPostEffect() {
+				const program = dsr.createProgram(
+					gl,
+					dsr.fullscreenVertShader,
+					postFragmenstShaderSrc
+				);
+
+				const fxaaprogram = dsr.createProgram(
+					gl,
+					fxaaVertShaderSrc,
+					fxaaFragShaderSrc
+				);
+
+				posteffeet = {
+					program: program,
+					fxaaprogram: fxaaprogram,
+					buffers: {
+						position: dsr.createBufferWithLocation(
+							gl,
+							program,
+							dsr.createSuperSimpleplane(1, 1),
+							'position'
+						)
+					}
+				};
+
+				posteffeet.uniforms = dsr.getUniformLocations(gl, program, ['uTexture']);
+				posteffeet.fxaauniforms = dsr.getUniformLocations(gl, fxaaprogram, [
+					'uTexture',
+					'uResolution'
+				]);
+			}
+
+			function createFBO() {
+				fbo = new dsr.FBO(gl, viewportWidth, viewportHeight, null, true);
+				fbo.unbind();
+				fbo2 = new dsr.FBO(gl, viewportWidth, viewportHeight, null, true);
+				fbo2.unbind();
+			}
+
+			function addGui() {
+				let player = {
+					playAndStop: function() {
+						isPlay = !isPlay;
+						if (isPlay) {
+							playAndStopGui.name('pause');
+							loopId = requestAnimationFrame(tick);
+						} else {
+							playAndStopGui.name('play');
+							cancelAnimationFrame(loopId);
+						}
+					}
+				};
+				let isPlay = true;
+
+				const pane = new Tweakpane();
+				pane.addInput(options, 'isPostEffect');
+				pane.addInput(options, 'isFXAA');
+
+				stats = new Stats();
+				document.body.appendChild(stats.dom);
+			}
+
+			function tick() {
+				stats.update();
+
+				if (options.isPostEffect) {
+					fbo.bind();
+					updateFbo();
+					fbo.unbind();
+
+					if (options.isFXAA) {
+						fbo2.bind();
+					}
+					gl.clearColor(0, 0, 0, 1);
+					gl.enable(gl.DEPTH_TEST);
+					gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+					gl.enable(gl.BLEND);
+					gl.blendFuncSeparate(
+						gl.SRC_ALPHA,
+						gl.ONE_MINUS_SRC_ALPHA,
+						gl.ONE,
+						gl.ONE_MINUS_SRC_ALPHA
+					);
+
+					gl.viewport(0, 0, viewportWidth, viewportHeight);
+
+					gl.useProgram(posteffeet.program);
+					dsr.bindBuffer(
+						gl,
+						posteffeet.buffers.position.buffer,
+						posteffeet.buffers.position.location,
+						2
+					);
+					dsr.activeTexture(gl, fbo.getTexture(), posteffeet.uniforms.uTexture, 0);
+					this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+					if (options.isFXAA) {
+						fbo2.unbind();
+
+						gl.clearColor(0, 0, 0, 1);
+						gl.enable(gl.DEPTH_TEST);
+						gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+						gl.enable(gl.BLEND);
+						gl.blendFuncSeparate(
+							gl.SRC_ALPHA,
+							gl.ONE_MINUS_SRC_ALPHA,
+							gl.ONE,
+							gl.ONE_MINUS_SRC_ALPHA
+						);
+
+						gl.viewport(0, 0, viewportWidth, viewportHeight);
+
+						gl.useProgram(posteffeet.fxaaprogram);
+						dsr.bindBuffer(
+							gl,
+							posteffeet.buffers.position.buffer,
+							posteffeet.buffers.position.location,
+							2
+						);
+
+						// console.log(posteffeet.fxaauniforms);
+
+						dsr.activeTexture(
+							gl,
+							fbo2.getTexture(),
+							posteffeet.fxaauniforms.uTexture,
+							0
+						);
+						gl.uniform2f(
+							posteffeet.fxaauniforms.uResolution,
+							this.viewportWidth,
+							this.viewportHeight
+						);
+						this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+					}
+				} else {
+					updateFbo();
+				}
+
+				loopId = requestAnimationFrame(tick);
+			}
+
+			function updateFbo() {
+				gl.clearColor(1, 1, 1, 1);
+				gl.enable(gl.DEPTH_TEST);
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+				gl.enable(gl.BLEND);
+				gl.blendFuncSeparate(
+					gl.SRC_ALPHA,
+					gl.ONE_MINUS_SRC_ALPHA,
+					gl.ONE,
+					gl.ONE_MINUS_SRC_ALPHA
+				);
+				gl.viewport(0, 0, viewportWidth, viewportHeight);
+
+				if (mesh) {
+					var { mv, model, mvp, normal } = mesh.matrix;
+					mat4.multiply(mv, camera.viewMatrix, model);
+					mat4.multiply(mvp, camera.projectionMatrix, mv);
+
+					gl.useProgram(mesh.program);
+
+					dsr.bindBuffer(
+						gl,
+						mesh.buffers.position.buffer,
+						mesh.buffers.position.location,
+						3
+					);
+					dsr.bindBuffer(gl, mesh.buffers.normal.buffer, mesh.buffers.normal.location, 3);
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.buffers.index.buffer);
+
+					gl.uniformMatrix4fv(mesh.uniforms.uMVPMatrix, false, mvp);
+					gl.uniformMatrix4fv(mesh.uniforms.uModelMatrix, false, model);
+					gl.uniformMatrix4fv(mesh.uniforms.uNormalMatrix, false, normal);
+
+					gl.uniform3f(
+						mesh.uniforms.uCameraPosition,
+						camera.position.x,
+						camera.position.y,
+						camera.position.z
+					);
+					gl.uniform3f(mesh.uniforms.uLightDirection, 0, 0, -1);
+
+					gl.uniform3f(
+						mesh.uniforms.uLightColor,
+						lightColor[0],
+						lightColor[1],
+						lightColor[2]
+					);
+					gl.uniform3f(
+						mesh.uniforms.uMaterialColor,
+						materialColor[0],
+						materialColor[1],
+						materialColor[2]
+					);
+
+					gl.uniform1f(mesh.uniforms.uShininess, shininess);
+					gl.uniform1f(mesh.uniforms.uSpecular, specular);
+
+					gl.drawElements(gl.TRIANGLES, mesh.buffers.index.cnt, gl.UNSIGNED_INT, 0);
+				}
+			}
+
+			function resize() {
+				viewportWidth = window.innerWidth;
+				viewportHeight = window.innerHeight;
+
+				canvas.width = viewportWidth;
+				canvas.height = viewportHeight;
+
+				if (camera) {
+					camera.updateSize(viewportWidth, viewportHeight);
+				}
+
+				if (fbo) {
+					fbo.resize(viewportWidth, viewportHeight);
+				}
+
+				if (fbo2) {
+					fbo2.resize(viewportWidth, viewportHeight);
+				}
+			}
+
+			const vertexShaderSrc = `
+			precision highp float;
+
+			attribute vec4 position;
+			attribute vec3 normal;
+
+			uniform mat4 uModelMatrix;
+			uniform mat4 uMVPMatrix;
+			uniform mat4 uNormalMatrix;
+			uniform vec3 uCameraPosition;
+
+			varying vec3 vNormal;
+			varying vec3 vPosition;
+
+
+			void main() {
+				vNormal = normalize(vec3(uNormalMatrix * vec4(normal, 0.0)));
+				vPosition = vec3(uModelMatrix * position);
+
+				gl_Position = uMVPMatrix * position;
+			}
+			`;
+
+			const fragmentShaderSrc = `
+			precision highp float;
+
+			uniform vec3 uCameraPosition;
+			uniform vec3 uLightDirection;
+
+			uniform float uShininess;
+			uniform float uSpecular;
+
+			uniform vec3 uLightColor;
+			uniform vec3 uMaterialColor;
+
+			varying vec3 vNormal;
+			varying vec3 vPosition;
+
+
+			void main() {
+				vec3 color;
+
+				vec3 ambientLightColor;
+
+				vec3 diffuseColor;
+				diffuseColor = uMaterialColor * uLightColor * max(0.0, dot(-normalize(uLightDirection), vNormal));
+
+				vec3 specularReflection;
+				vec3 viewDirection = normalize(uCameraPosition - vPosition);
+				vec3 halfVector = normalize(viewDirection + normalize(-uLightDirection));
+				float HdV = max(0.001, dot(halfVector, viewDirection));
+				float w = pow(1.0 - HdV, 5.0);
+				float spec = pow(max(0.0, dot(
+							reflect(uLightDirection, vNormal),
+							viewDirection)), uShininess);
+
+				specularReflection = spec * uSpecular * uLightColor;
+
+				color = diffuseColor + specularReflection;
+
+				gl_FragColor = vec4(color, 1.0);
+			}
+			`;
+
+			const postFragmenstShaderSrc = `
+			precision highp float;
+
+			uniform sampler2D uTexture;
+
+			varying vec2 vUv;
+
+			vec2 barrelDistortion(vec2 coord, float amt) {
+				vec2 cc = coord - 0.5;
+				float dist = dot(cc, cc);
+				return coord + cc * dist * amt;
+			}
+
+			float sat( float t )
+			{
+				return clamp( t, 0.0, 1.0 );
+			}
+
+			float linterp( float t ) {
+				return sat( 1.0 - abs( 2.0*t - 1.0 ) );
+			}
+
+			float remap( float t, float a, float b ) {
+				return sat( (t - a) / (b - a) );
+			}
+
+			vec4 spectrum_offset( float t ) {
+				vec4 ret;
+				float lo = step(t,0.5);
+				float hi = 1.0-lo;
+				float w = linterp( remap( t, 1.0/6.0, 5.0/6.0 ) );
+				ret = vec4(lo,1.0,hi, 1.) * vec4(1.0-w, w, 1.0-w, 1.);
+
+				return pow( ret, vec4(1.0/2.2) );
+			}
+
+			const float max_distort = 2.2;
+			const int num_iter = 12;
+			const float reci_num_iter_f = 1.0 / float(num_iter);
+
+			void main(){
+				vec4 sumcol = vec4(0.0);
+				vec4 sumw = vec4(0.0);
+
+				for ( int i=0; i<num_iter;++i ) {
+					float t = float(i) * reci_num_iter_f;
+					vec4 w = spectrum_offset( t );
+					sumw += w;
+					sumcol += w * texture2D( uTexture, barrelDistortion(vUv, .6 * max_distort*t ) );
+				}
+
+				gl_FragColor = sumcol / sumw;
+			}
+			`;
+
+			const fxaaVertShaderSrc = `
+			precision highp float;
+
+			attribute vec3 position;
+
+			varying vec2 vUv;
+
+			varying vec2 v_rgbNW;
+			varying vec2 v_rgbNE;
+			varying vec2 v_rgbSW;
+			varying vec2 v_rgbSE;
+			varying vec2 v_rgbM;
+
+			uniform vec2 uResolution;
+
+			void texcoords(vec2 fragCoord, vec2 resolution,
+			out vec2 v_rgbNW, out vec2 v_rgbNE,
+			out vec2 v_rgbSW, out vec2 v_rgbSE,
+			out vec2 v_rgbM) {
+				vec2 inverseVP = 1.0 / resolution.xy;
+				v_rgbNW = (fragCoord + vec2(-1.0, -1.0)) * inverseVP;
+				v_rgbNE = (fragCoord + vec2(1.0, -1.0)) * inverseVP;
+				v_rgbSW = (fragCoord + vec2(-1.0, 1.0)) * inverseVP;
+				v_rgbSE = (fragCoord + vec2(1.0, 1.0)) * inverseVP;
+				v_rgbM = vec2(fragCoord * inverseVP);
+			}
+
+			void main(){
+				vUv = vec2(0.5)+(position.xy)*0.5;
+
+				gl_Position = vec4(position, 1.0);
+
+				vec2 fragCoord = vUv * uResolution;
+   				texcoords(fragCoord, uResolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
+			}`;
+
+			const fxaaFragShaderSrc = `
+			precision highp float;
+
+			//texcoords computed in vertex step
+			//to avoid dependent texture reads
+			varying vec2 v_rgbNW;
+			varying vec2 v_rgbNE;
+			varying vec2 v_rgbSW;
+			varying vec2 v_rgbSE;
+			varying vec2 v_rgbM;
+
+			varying vec2 vUv;
+			uniform sampler2D uTexture;
+			uniform vec2 uResolution;
+
+			#define FXAA_REDUCE_MIN   (1.0/ 128.0)
+			#define FXAA_REDUCE_MUL   (1.0 / 8.0)
+			#define FXAA_SPAN_MAX     8.0
+
+			//optimized version for mobile, where dependent 
+			//texture reads can be a bottleneck
+			vec4 calFxaa(sampler2D tex, vec2 fragCoord, vec2 resolution) {
+				vec4 color;
+				 vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);
+				vec3 rgbNW = texture2D(tex, v_rgbNW).xyz;
+				vec3 rgbNE = texture2D(tex, v_rgbNE).xyz;
+				vec3 rgbSW = texture2D(tex, v_rgbSW).xyz;
+				vec3 rgbSE = texture2D(tex, v_rgbSE).xyz;
+				vec4 texColor = texture2D(tex, v_rgbM);
+				vec3 rgbM  = texColor.xyz;
+				vec3 luma = vec3(0.299, 0.587, 0.114);
+				float lumaNW = dot(rgbNW, luma);
+				float lumaNE = dot(rgbNE, luma);
+				float lumaSW = dot(rgbSW, luma);
+				float lumaSE = dot(rgbSE, luma);
+				float lumaM  = dot(rgbM,  luma);
+				float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+				float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
+				
+				 vec2 dir;
+				dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
+				dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
+				
+				float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) *
+									(0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);
+				
+				float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
+				dir = min(vec2(FXAA_SPAN_MAX, FXAA_SPAN_MAX),
+						max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),
+						dir * rcpDirMin)) * inverseVP;
+				
+				vec3 rgbA = 0.5 * (
+					texture2D(tex, fragCoord * inverseVP + dir * (1.0 / 3.0 - 0.5)).xyz +
+					texture2D(tex, fragCoord * inverseVP + dir * (2.0 / 3.0 - 0.5)).xyz);
+				vec3 rgbB = rgbA * 0.5 + 0.25 * (
+					texture2D(tex, fragCoord * inverseVP + dir * -0.5).xyz +
+					texture2D(tex, fragCoord * inverseVP + dir * 0.5).xyz);
+
+				float lumaB = dot(rgbB, luma);
+				if ((lumaB < lumaMin) || (lumaB > lumaMax))
+					color = vec4(rgbA, texColor.a);
+				else
+					color = vec4(rgbB, texColor.a);
+
+				return color;
+			}
+
+			void main() {
+				vec2 fragCoord = vUv * uResolution; 
+
+				gl_FragColor= calFxaa(uTexture, fragCoord, uResolution);
+			}
+			`;
+		</script>
+		<!-- Global site tag (gtag.js) - Google Analytics -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-42485016-2"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag() {
+				dataLayer.push(arguments);
+			}
+			gtag('js', new Date());
+
+			gtag('config', 'UA-42485016-2');
+		</script>
+	</body>
+</html>
