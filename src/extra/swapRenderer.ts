@@ -43,11 +43,11 @@ export class SwapRenderer {
 		this.gl = gl;
 	}
 
-	setSize(width: number, height: number) {
+	public setSize(width: number, height: number) {
 		this.gl.viewport(0, 0, width, height);
 	}
 
-	createProgram(programName: string, vertexShader: string, fragmentShader: string) {
+	public createProgram(programName: string, vertexShader: string, fragmentShader: string) {
 		const program = createProgram(this.gl, vertexShader, fragmentShader);
 
 		this.gl.useProgram(program);
@@ -58,7 +58,7 @@ export class SwapRenderer {
 		};
 	}
 
-	initTexture(name: string, width: number, height: number, type: number) {
+	public initTexture(name: string, width: number, height: number, type: number) {
 		const texture = createEmptyTexture(
 			this.gl,
 			width,
@@ -74,13 +74,13 @@ export class SwapRenderer {
 		this.textures[name] = texture;
 	}
 
-	initTextureWithImage(name: string, type: number, image: HTMLImageElement) {
+	public initTextureWithImage(name: string, type: number, image: HTMLImageElement) {
 		const texture = createCustomTypeImageTexture(this.gl, image, this.gl.RGB, type, true);
 
 		this.textures[name] = texture;
 	}
 
-	initFramebufferForTexture(textureName: string) {
+	public initFramebufferForTexture(textureName: string) {
 		const texture = this.textures[textureName];
 		const framebuffer = this.gl.createFramebuffer();
 		this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
@@ -95,21 +95,25 @@ export class SwapRenderer {
 		this.framebuffers[textureName] = framebuffer;
 	}
 
-	initDepthTexture(width: number, height: number) {
+	public initDepthTexture(width: number, height: number) {
 		const depth = this.gl.createRenderbuffer();
 		this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, depth);
 		this.gl.renderbufferStorage(this.gl.RENDERBUFFER, this.gl.DEPTH_COMPONENT16, width, height);
 	}
 
-	use(programName: string) {
+	public setProgram(programName: string) {
 		this.gl.useProgram(this.programs[programName].id);
 	}
 
-	getProgram(programName: string) {
+	public use(programName: string) {
+		this.gl.useProgram(this.programs[programName].id);
+	}
+
+	public getProgram(programName: string) {
 		return this.programs[programName].id;
 	}
 
-	createPositionVBO(name: string, scaleX: number = 1, scaleY: number = 1) {
+	public createPositionVBO(name: string, scaleX: number = 1, scaleY: number = 1) {
 		const buffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
 		this.gl.bufferData(
@@ -121,19 +125,19 @@ export class SwapRenderer {
 		this.positionVbos[name] = buffer;
 	}
 
-	usePositionVBO() {
+	public usePositionVBO() {
 		const location = 0;
 		this.gl.enableVertexAttribArray(location);
 		this.gl.vertexAttribPointer(location, 2, this.gl.FLOAT, false, 0, 0);
 	}
 
-	updateVBO(name: string) {
+	public updateVBO(name: string) {
 		const buffer = this.positionVbos[name];
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
 		this.usePositionVBO();
 	}
 
-	run(programName: string, inputNameArr: string[], outputName: string) {
+	public run(programName: string, inputNameArr: string[], outputName: string) {
 		this.use(programName);
 		this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.framebuffers[outputName]);
 		for (let ii = 0; ii < inputNameArr.length; ii = ii + 1) {
@@ -145,7 +149,7 @@ export class SwapRenderer {
 		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
 	}
 
-	swapTextures(texture1Name: string, texture2Name: string) {
+	public swapTextures(texture1Name: string, texture2Name: string) {
 		let tempTex = this.textures[texture1Name];
 		this.textures[texture1Name] = this.textures[texture2Name];
 		this.textures[texture2Name] = tempTex;
@@ -155,7 +159,7 @@ export class SwapRenderer {
 		this.framebuffers[texture2Name] = tempFBO;
 	}
 
-	setUniform(
+	public setUniform(
 		programName: string,
 		name: string,
 		val: number | number[] | Float32List,
@@ -189,7 +193,7 @@ export class SwapRenderer {
 		}
 	}
 
-	reset() {
+	public reset() {
 		this.programs = {};
 		this.framebuffers = {};
 		this.textures = {};

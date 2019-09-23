@@ -11,6 +11,7 @@ export declare class SwapRenderer {
     initTextureWithImage(name: string, type: number, image: HTMLImageElement): void;
     initFramebufferForTexture(textureName: string): void;
     initDepthTexture(width: number, height: number): void;
+    setProgram(programName: string): void;
     use(programName: string): void;
     getProgram(programName: string): WebGLProgram;
     createPositionVBO(name: string, scaleX?: number, scaleY?: number): void;

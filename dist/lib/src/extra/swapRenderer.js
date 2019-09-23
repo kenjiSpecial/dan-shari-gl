@@ -43,6 +43,9 @@ var SwapRenderer = /** @class */ (function () {
         this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, depth);
         this.gl.renderbufferStorage(this.gl.RENDERBUFFER, this.gl.DEPTH_COMPONENT16, width, height);
     };
+    SwapRenderer.prototype.setProgram = function (programName) {
+        this.gl.useProgram(this.programs[programName].id);
+    };
     SwapRenderer.prototype.use = function (programName) {
         this.gl.useProgram(this.programs[programName].id);
     };

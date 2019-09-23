@@ -1,0 +1,591 @@
+<html>
+	<title>DEV</title>
+	<meta charset="UTF-8" />
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" />
+	<style>
+		* {
+			margin: 0;
+		}
+
+		html,
+		body {
+			font-family: 'Roboto', sans-serif;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+		}
+
+		canvas {
+			background: #000000;
+			display: block;
+		}
+
+		.dsr-desc {
+			position: absolute;
+			bottom: 20px;
+			left: 20px;
+			color: #cccccc;
+			font-size: 14px;
+			line-height: 1.75em;
+			z-index: 10;
+		}
+
+		.dsr-desc a {
+			color: #ffffff;
+		}
+	</style>
+	<meta
+		name="viewport"
+		content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+	/>
+
+	<body>
+		<div class="dsr-desc"><p class="dsr-p">#10 - Fluid</p></div>
+
+		<script src="./vendors/dat.gui.min.js"></script>
+		<script src="./vendors/TweenMax.js"></script>
+		<script src="./vendors/gl-matrix.js"></script>
+
+		<script src="../../dist/dan-shari-gl.umd.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/tweakpane@1.0.5/dist/tweakpane.min.js"></script>
+		<script>
+			const FRICTION = 0.9;
+
+			const DT = 1;
+			const DX = 1;
+			const NU = 1; //viscosity
+			const RHO = 1; //density
+
+			const ITERATE = 20;
+
+			const UNIFORM_1f = '1f';
+			const UNIFORM_1i = '1i';
+			const UNIFORM_2f = '2f';
+			const UNIFORM_MAT_4f = 'mat4';
+
+			const VELOCITY0 = 'velocity0';
+			const VELOCITY1 = 'velocity1';
+			const VELOCITY_DIVERGENCE = 'velocityDivergence';
+			const PRESSURE0 = 'pressure0';
+			const PRESSURE1 = 'pressure1';
+			const CURL = 'curl';
+
+			const advectFrag = `
+precision highp float;
+uniform sampler2D source;
+uniform sampler2D velocity;
+uniform float dt;
+uniform float scale;
+uniform vec2 px1;
+varying vec2 uv;
+
+void main(){
+    gl_FragColor = texture2D(source, uv-texture2D(velocity, uv).xy*dt*px1)*scale;
+}
+`;
+
+			const divergenceFrag = `
+precision highp float;
+uniform sampler2D velocity;
+uniform float dt;
+uniform vec2 px;
+varying vec2 uv;
+varying highp vec2 vL;
+varying highp vec2 vR;
+varying highp vec2 vT;
+varying highp vec2 vB;
+
+void main(){
+	float L = texture2D(velocity, vL).x;
+	float R = texture2D(velocity, vR).x;
+	float T = texture2D(velocity, vT).y;
+	float B = texture2D(velocity, vB).y;
+
+	vec2 C = texture2D(velocity, uv).xy;
+	if (vL.x < 0.0) { L = -C.x; }
+	if (vR.x > 1.0) { R = -C.x; }
+	if (vT.y > 1.0) { T = -C.y; }
+	if (vB.y < 0.0) { B = -C.y; }
+
+	float div = 0.5 * (R - L + T - B);
+	gl_FragColor = vec4(div, 0.0, 0.0, 1.0);
+}
+`;
+
+			const jacobiFrag = `
+precision highp float;
+uniform sampler2D pressure;
+uniform sampler2D divergence;
+uniform float alpha;
+uniform float beta;
+uniform vec2 px;
+varying vec2 uv;
+varying highp vec2 vL;
+varying highp vec2 vR;
+varying highp vec2 vT;
+varying highp vec2 vB;
+
+void main(){
+    float x0 = texture2D(pressure, vL).r;
+    float x1 = texture2D(pressure, vR).r;
+    float y0 = texture2D(pressure, vT).r;
+    float y1 = texture2D(pressure, vB).r;
+    float d = texture2D(divergence, uv).r;
+    float relaxed = (x0 + x1 + y0 + y1 + alpha * d) * beta;
+    gl_FragColor = vec4(relaxed);
+    
+}
+`;
+
+			const subtractPressureGradientFrag = `
+precision highp float;
+uniform sampler2D pressure;
+uniform sampler2D velocity;
+uniform float scale;
+uniform vec2 px;
+varying vec2 uv;
+
+void main(){
+    float x0 = texture2D(pressure, uv-vec2(px.x, 0)).r;
+    float x1 = texture2D(pressure, uv+vec2(px.x, 0)).r;
+    float y0 = texture2D(pressure, uv-vec2(0, px.y)).r;
+    float y1 = texture2D(pressure, uv+vec2(0, px.y)).r;
+    vec2 v = texture2D(velocity, uv).xy;
+	vec4 v2 = vec4((v-(vec2(x1, y1)-vec2(x0, y0))*0.5)*scale, 1.0, 1.0);
+	// v2.xy = v2.xy * 0.99;
+    gl_FragColor = v2;
+}
+`;
+
+			const clearFrag = `
+precision highp float;
+
+varying vec2 uv;
+uniform sampler2D pressure;
+uniform float value;
+
+void main () {
+	gl_FragColor = value * texture2D(pressure, uv);
+}
+			`;
+
+			const curlShader = `
+precision highp float;
+varying  vec2 uv;
+varying  vec2 vL;
+varying  vec2 vR;
+varying  vec2 vT;
+varying  vec2 vB;
+uniform sampler2D velocity;
+
+void main () {
+	float L = texture2D(velocity, vL).y;
+	float R = texture2D(velocity, vR).y;
+	float T = texture2D(velocity, vT).x;
+	float B = texture2D(velocity, vB).x;
+	float vorticity = R - L - T + B;
+	gl_FragColor = vec4(0.5 * vorticity, 0.0, 0.0, 1.0);
+}
+			`;
+
+			const vorticityShader = `
+precision highp float;
+
+varying vec2 uv;
+varying vec2 vL;
+varying vec2 vR;
+varying vec2 vT;
+varying vec2 vB;
+
+uniform sampler2D velocity;
+uniform sampler2D uCurl;
+
+uniform float curl;
+uniform float dt;
+
+void main () {
+	float L = texture2D(uCurl, vL).x;
+	float R = texture2D(uCurl, vR).x;
+	float T = texture2D(uCurl, vT).x;
+	float B = texture2D(uCurl, vB).x;
+	float C = texture2D(uCurl, uv).x;
+
+	vec2 force = 0.5 * vec2(abs(T) - abs(B), abs(R) - abs(L));
+	force /= length(force) + 0.0001;
+	force *= curl * C;
+	force.y *= -1.0;
+
+	vec2 vel = texture2D(velocity, uv).xy;
+	gl_FragColor = vec4(vel + force * dt, 0.0, 1.0);
+}
+			`;
+
+			const velocityBoundaryFrag = `
+precision highp float;
+uniform sampler2D velocity;
+uniform float dt;
+uniform float scale;
+varying vec2 uv;
+
+vec2 velocityAt(uv){
+    return texture2D(velocity, uv-texture2D(velocity, uv).xy*dt);
+}
+
+void main(){
+    gl_FragColor = vec4(scale*velocityAt(uv), 1.0, 1.0);
+}
+`;
+
+			const visFrag = `
+precision highp float;
+uniform sampler2D velocity;
+uniform sampler2D pressure;
+uniform float uAlpha;
+uniform vec2 px1;
+
+varying vec2 uv;
+
+const vec3 color0 = vec3(0.0,98./255., 157./255.);
+const vec3 color2 =vec3(0.0,66./255., 107./255.); 
+const vec3 color1 = vec3(0.15,0.54 + 0.15,0.86+ 0.1);
+
+void main(){
+    vec3 baseColor; 
+
+    vec2 vel = texture2D(velocity, uv).xy * 0.5 + vec2(0.5);
+    float pre = 0.5 - texture2D(pressure, uv).x  * 0.5;
+
+    // float rate = length(vel);
+    // if(-uv.x + uv.y / px1.y  < 0.  + 0.2 * (vel.x * px1.y  + vel.y ) + length(vel) * mix( 10., 0.4, uAlpha) ){
+    //     baseColor = color0;
+    // }else{
+    //     baseColor = mix(color0, mix(color0, color2, uv.x ), uAlpha);
+    // }
+    
+	gl_FragColor.rgb = vec3(vel, pre);
+	gl_FragColor.a = 1.0;
+	
+	
+}
+`;
+
+			const baseVert = `
+precision highp float;
+
+attribute vec3 position;
+uniform vec2 px;
+varying vec2 uv;
+varying vec2 vL;
+varying vec2 vR;
+varying vec2 vT;
+varying vec2 vB;
+void main(){
+	uv = vec2(0.5)+(position.xy)*0.5;
+	vL = uv - vec2(px.x, 0.0);
+	vR = uv + vec2(px.x, 0.0);
+	vT = uv + vec2(0.0, px.y);
+	vB = uv - vec2(0.0, px.y);
+    gl_Position = vec4(position, 1.0);
+}
+`;
+
+			const resetVelocityShader = `
+precision highp float;
+varying vec2 uv;
+void main() {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+`;
+
+			const cursorVert = `
+precision highp float;
+attribute vec3 position;
+uniform vec2 cursor;
+uniform vec2 px;
+varying vec2 vPosition;
+varying vec2 uv;
+
+void main(){
+    vec2 outputPos = 100. * px * position.xy + cursor;    
+    uv = vec2(0.5)+(position.xy)*0.5;
+    vPosition = position.xy;
+    gl_Position = vec4(position.xy, 0.0, 1.0);
+}
+`;
+
+			const addForceFrag2 = `
+precision highp float;
+uniform sampler2D uBase;
+uniform vec2 velocity;
+uniform vec2 cursor;
+uniform vec2 px;
+varying vec2 uv;
+varying vec2 vPosition;
+float blendAdd(float base, float blend) {
+	return min(base+blend,1.0);
+}
+vec3 blendAdd(vec3 base, vec3 blend) {
+	return min(base+blend,vec3(1.0));
+}
+vec3 blendAdd(vec3 base, vec3 blend, float opacity) {
+	return (blendAdd(base, blend) * opacity + base * (1.0 - opacity));
+}
+void main(){
+    
+    float dist = distance(cursor/px, vPosition/px);
+	vec3 color = texture2D(uBase, uv).rgb;
+	float dx = 2.0 * px.x;
+	float dy = 2.0 * px.y;
+    float marginX = 1.0 - dx;
+    float marginY = 1.0 - dy;
+    if(dist < 80. && length(dist) > 0. && uv.x < marginX && uv.x > dx && uv.y < marginY && uv.y > dy){
+        color = color +  vec3(velocity.xy * 50., 0.0) * clamp(2.0 - dist/40., 0.0, 1.0);
+    }
+    
+    gl_FragColor = vec4(color, 1.0);
+}
+`;
+		</script>
+
+		<script>
+			var config = {
+				PRESSURE: 0.8,
+				CURL: 15
+			};
+
+			var canvas = document.createElement('canvas');
+			const params = {
+				alpha: false,
+				// depth: true,
+				// stencil: false,
+				antialias: false,
+				premultipliedAlpha: false,
+				preserveDrawingBuffer: false
+				// depth: false
+			};
+			var gl =
+				canvas.getContext('webgl', params) ||
+				canvas.getContext('experimental-webgl', params);
+			gl.getExtension('OES_texture_float');
+			gl.getExtension('OES_texture_float_linear');
+			var bgwidth;
+			var bgheight;
+			var viewportWidth;
+			var viewportHeight;
+			var px;
+			var px1;
+			var mouse = [0, 0];
+			var lastmouse = [0, 0];
+			var targetmouse = [0, 0];
+			var mouseVelocity = [0, 0];
+
+			document.body.appendChild(canvas);
+
+			var swapRenderer;
+			createSwapRenderer();
+
+			resize();
+			window.addEventListener('resize', resize);
+			document.body.addEventListener('mousemove', mousemove);
+			document.body.addEventListener('mouseenter', mouseenter);
+
+			var loopId = requestAnimationFrame(loop);
+
+			function loop() {
+				lastmouse[0] = mouse[0];
+				lastmouse[1] = mouse[1];
+
+				mouse[0] = (targetmouse[0] - mouse[0]) * 0.1 + mouse[0];
+				mouse[1] = (targetmouse[1] - mouse[1]) * 0.1 + mouse[1];
+
+				const dX = mouse[0] - lastmouse[0];
+				const dY = mouse[1] - lastmouse[1];
+				const K = 1;
+
+				mouseVelocity[0] = dX * K;
+				mouseVelocity[1] = (dY * K * viewportHeight) / viewportWidth;
+
+				// mouseVelocity[0] = mouseVelocity[0] * FRICTION;
+				// mouseVelocity[1] = mouseVelocity[1] * FRICTION;
+
+				updateFluid();
+				render();
+
+				loopId = requestAnimationFrame(loop);
+			}
+
+			function updateFluid() {
+				gl.disable(gl.DEPTH_TEST);
+
+				swapRenderer.setSize(bgwidth, bgheight);
+
+				swapRenderer.run('curl', [VELOCITY0], CURL);
+
+				swapRenderer.setProgram('vorticity');
+				swapRenderer.setUniform('vorticity', 'dt', 1 / 60, UNIFORM_1f);
+				swapRenderer.setUniform('vorticity', 'curl', config.CURL, UNIFORM_1f);
+				swapRenderer.run('vorticity', [VELOCITY0, CURL], VELOCITY1);
+				swapRenderer.swapTextures(VELOCITY0, VELOCITY1);
+
+				swapRenderer.setProgram('interactionForce');
+				swapRenderer.setUniform('interactionForce', 'cursor', mouse, UNIFORM_2f);
+				swapRenderer.setUniform('interactionForce', 'velocity', mouseVelocity, UNIFORM_2f);
+				swapRenderer.run('interactionForce', [VELOCITY0], VELOCITY1);
+
+				swapRenderer.run('divergence', [VELOCITY1], VELOCITY_DIVERGENCE);
+
+				swapRenderer.setProgram('clear');
+				swapRenderer.setUniform('clear', 'value', config.PRESSURE, UNIFORM_1f);
+				swapRenderer.run('clear', [PRESSURE0], PRESSURE1);
+				swapRenderer.swapTextures(PRESSURE0, PRESSURE1);
+
+				for (let ii = 0; ii < 20; ii = ii + 1) {
+					swapRenderer.run('jacobi', [PRESSURE0, VELOCITY_DIVERGENCE], PRESSURE1);
+					swapRenderer.swapTextures(PRESSURE0, PRESSURE1);
+				}
+
+				swapRenderer.setProgram('subtractPressureGradient');
+				swapRenderer.run('subtractPressureGradient', [PRESSURE0, VELOCITY1], VELOCITY0);
+
+				swapRenderer.setProgram('advect');
+				swapRenderer.run('advect', [VELOCITY0, VELOCITY0], VELOCITY1);
+				swapRenderer.swapTextures(VELOCITY0, VELOCITY1);
+			}
+
+			function render() {
+				swapRenderer.setSize(viewportWidth, viewportHeight);
+
+				swapRenderer.setProgram('visualize');
+				swapRenderer.run('visualize', [PRESSURE0, VELOCITY0], null);
+			}
+
+			function createSwapRenderer() {
+				swapRenderer = new dsr.SwapRenderer(gl);
+				swapRenderer.createProgram('advect', baseVert, advectFrag);
+				swapRenderer.createProgram('interactionForce', cursorVert, addForceFrag2);
+				swapRenderer.createProgram('divergence', baseVert, divergenceFrag);
+				swapRenderer.createProgram('jacobi', baseVert, jacobiFrag);
+				swapRenderer.createProgram('curl', baseVert, curlShader);
+				swapRenderer.createProgram('vorticity', baseVert, vorticityShader);
+				swapRenderer.createProgram('clear', baseVert, clearFrag);
+				swapRenderer.createProgram(
+					'subtractPressureGradient',
+					baseVert,
+					subtractPressureGradientFrag
+				);
+				swapRenderer.createProgram('visualize', baseVert, visFrag);
+			}
+
+			function mousemove(event) {
+				const ptX = event.clientX;
+				const ptY = event.clientY;
+
+				targetmouse[0] = (ptX / viewportWidth) * 2 - 1;
+				targetmouse[1] = (ptY / viewportHeight) * -2 + 1;
+			}
+
+			function mouseenter(event) {
+				const ptX = event.clientX;
+				const ptY = event.clientY;
+				targetmouse[0] = (ptX / viewportWidth) * 2 - 1;
+				targetmouse[1] = (ptY / viewportHeight) * -2 + 1;
+
+				mouse[0] = targetmouse[0];
+				mouse[1] = targetmouse[1];
+
+				lastmouse[0] = targetmouse[0];
+				lastmouse[1] = targetmouse[1];
+			}
+
+			function resize() {
+				var scale = 0.3;
+
+				viewportWidth = window.innerWidth;
+				viewportHeight = window.innerHeight;
+				bgwidth = viewportWidth * scale;
+				bgheight = viewportHeight * scale;
+
+				canvas.width = viewportWidth;
+				canvas.height = viewportHeight;
+
+				const px_x = 1 / bgwidth;
+				const px_y = 1 / bgheight;
+
+				px = [px_x, px_y];
+				px1 = [1, viewportWidth / viewportHeight];
+
+				swapRenderer.setProgram('advect');
+				swapRenderer.setUniform('advect', 'source', 0, UNIFORM_1i);
+				swapRenderer.setUniform('advect', 'velocity', 1, UNIFORM_1i);
+				swapRenderer.setUniform('advect', 'dt', 1 / 60, UNIFORM_1f);
+				swapRenderer.setUniform('advect', 'scale', 0.99, UNIFORM_1f);
+				swapRenderer.setUniform('advect', 'px1', px1, UNIFORM_2f);
+				swapRenderer.setUniform('advect', 'px', px, UNIFORM_2f);
+
+				swapRenderer.setProgram('interactionForce');
+				swapRenderer.setUniform('interactionForce', 'px', px, UNIFORM_2f);
+				swapRenderer.setUniform('interactionForce', 'cursor', mouse, UNIFORM_2f);
+				swapRenderer.setUniform('interactionForce', 'uBase', 0, UNIFORM_1i);
+				swapRenderer.setUniform('interactionForce', 'velocity', mouseVelocity, UNIFORM_2f);
+
+				swapRenderer.setProgram('divergence');
+				swapRenderer.setUniform('divergence', 'velocity', 0, UNIFORM_1i);
+				swapRenderer.setUniform('divergence', 'px', px, UNIFORM_2f);
+
+				swapRenderer.setProgram('clear');
+				swapRenderer.setUniform('clear', 'pressure', 0, UNIFORM_1i);
+				swapRenderer.setUniform('clear', 'value', config.PRESSURE, UNIFORM_1f);
+				swapRenderer.setUniform('clear', 'px', px, UNIFORM_2f);
+
+				swapRenderer.setProgram('curl');
+				swapRenderer.setUniform('curl', 'velocity', 0, UNIFORM_1i);
+				swapRenderer.setUniform('curl', 'px', px, UNIFORM_2f);
+
+				swapRenderer.setProgram('vorticity');
+				swapRenderer.setUniform('vorticity', 'velocity', 0, UNIFORM_1i);
+				swapRenderer.setUniform('vorticity', 'uCurl', 1, UNIFORM_1i);
+				swapRenderer.setUniform('vorticity', 'px', px, UNIFORM_2f);
+
+				swapRenderer.setProgram('jacobi');
+				swapRenderer.setUniform('jacobi', 'pressure', 0, UNIFORM_1i);
+				swapRenderer.setUniform('jacobi', 'divergence', 1, UNIFORM_1i);
+				swapRenderer.setUniform('jacobi', 'px', px, UNIFORM_2f);
+				swapRenderer.setUniform('jacobi', 'alpha', -1, UNIFORM_1f);
+				swapRenderer.setUniform('jacobi', 'beta', 0.25, UNIFORM_1f);
+
+				swapRenderer.setProgram('subtractPressureGradient');
+				swapRenderer.setUniform('subtractPressureGradient', 'pressure', 0, UNIFORM_1i);
+				swapRenderer.setUniform('subtractPressureGradient', 'velocity', 1, UNIFORM_1i);
+				swapRenderer.setUniform('subtractPressureGradient', 'px', px, UNIFORM_2f);
+				swapRenderer.setUniform('subtractPressureGradient', 'scale', 1, UNIFORM_1f);
+
+				swapRenderer.setProgram('visualize');
+				swapRenderer.setUniform('visualize', 'pressure', 0, UNIFORM_1i);
+				swapRenderer.setUniform('visualize', 'velocity', 1, UNIFORM_1i);
+				[VELOCITY0, VELOCITY1, VELOCITY_DIVERGENCE, PRESSURE0, PRESSURE1, CURL].forEach(
+					text => {
+						swapRenderer.initTexture(text, bgwidth, bgheight, gl.FLOAT);
+						swapRenderer.initFramebufferForTexture(text, bgwidth, bgheight);
+					}
+				);
+
+				const marginSide = 1;
+				swapRenderer.createPositionVBO('all', 1, 1);
+				swapRenderer.usePositionVBO();
+
+				swapRenderer.setSize(bgwidth, bgheight);
+			}
+		</script>
+		<!-- Global site tag (gtag.js) - Google Analytics -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-42485016-2"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag() {
+				dataLayer.push(arguments);
+			}
+			gtag('js', new Date());
+
+			gtag('config', 'UA-42485016-2');
+		</script>
+	</body>
+</html>

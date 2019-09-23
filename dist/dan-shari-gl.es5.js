@@ -1,4 +1,4 @@
-var version = "1.3.0";
+var version = "1.3.1";
 
 var FLOAT = 0x1406;
 var RGB = 0x1907;
@@ -2463,6 +2463,9 @@ var SwapRenderer = /** @class */ (function () {
         var depth = this.gl.createRenderbuffer();
         this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, depth);
         this.gl.renderbufferStorage(this.gl.RENDERBUFFER, this.gl.DEPTH_COMPONENT16, width, height);
+    };
+    SwapRenderer.prototype.setProgram = function (programName) {
+        this.gl.useProgram(this.programs[programName].id);
     };
     SwapRenderer.prototype.use = function (programName) {
         this.gl.useProgram(this.programs[programName].id);
