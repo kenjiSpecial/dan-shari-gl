@@ -1,6 +1,3 @@
-import { version } from '../package.json';
-console.log(`dan-shari-gl: ${version}`);
-
 export * from './utils/functions/gl-functions';
 export * from './utils/functions/gl-textures';
 export * from './utils/functions/assets-functions';

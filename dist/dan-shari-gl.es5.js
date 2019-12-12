@@ -1,5 +1,3 @@
-var version = "1.3.1";
-
 var FLOAT = 0x1406;
 var RGB = 0x1907;
 // variables relating to textures
@@ -2597,8 +2595,6 @@ var FBO = /** @class */ (function () {
     };
     return FBO;
 }());
-
-console.log("dan-shari-gl: " + version);
 
 export { CLAMP_TO_EDGE, COLOR_REPEAT, Camera, CameraController, DEPTH_COMPONENT16, EMPTY_CANVAS_COLOR, EMPTY_CANVAS_SIZE, FBO, FLOAT, LINEAR, LINEAR_MIPMAP_LINEAR, LINEAR_MIPMAP_NEAREST, NEAREST, NEAREST_MIPMAP_LINEAR, NEAREST_MIPMAP_NEAREST, OrthoCamera, PerspectiveCamera, REPEAT, RGB, Ray, SwapRenderer, TextLayout, TextLines, TextRendering, TexturePools, UNIFORM_1F, UNIFORM_1I, UNIFORM_2F, UNIFORM_3F, UNIFORM_MAT_4F, UNSIGNED_BYTE, activeTexture, addKeyword, addLineNumbers, bindBuffer, calculateCircleCenter, castMouse, clamp, compileGLShader, createAndBindDepthBuffer, createBuffer, createBufferWithLocation, createCustomTypeImageTexture, createEmptyTexture, createFrameBufferWithTexture, createImageTexture, createIndex, createProgram, createSimpleBox, createSimplePlane, createSuperSimpleplane, degToRad, fillFragShader, fullscreenVertShader, generateFaceFromIndex, getAjaxJson, getImage, getPlane, getSphere, getUniformLocations, loadDraco, mergeGeomtory, mix, radToDeg, range, texFragShader, updateArrayBuffer, updateEmptyImageTexture, updateImageTexture };
 //# sourceMappingURL=dan-shari-gl.es5.js.map
